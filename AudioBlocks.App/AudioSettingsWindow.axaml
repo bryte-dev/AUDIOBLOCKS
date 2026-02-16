@@ -1,0 +1,104 @@
+﻿    <Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="500"
+        x:Class="AudioBlocks.App.AudioSettingsWindow"
+        Title="Paramètres Audio">
+
+    <StackPanel Margin="15" Spacing="12">
+
+        <!-- Driver / Sample Rate -->
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto" Margin="0,0,0,10">
+            <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                <TextBlock Text="Driver audio :" FontWeight="Bold"/>
+                <ComboBox x:Name="DriverComboBox" SelectedIndex="0" Width="200">
+                    <ComboBoxItem Content="WASAPI Shared"/>
+                    <ComboBoxItem Content="WASAPI Exclusive"/>
+                    <ComboBoxItem Content="ASIO"/>
+                </ComboBox>
+
+                <!-- ASIO drivers list (visible/enabled uniquement si ASIO sélectionné) -->
+                <TextBlock Text="ASIO driver :" FontWeight="Bold" Margin="0,8,0,0"/>
+                <ComboBox x:Name="AsioDriverComboBox" Width="200"/>
+
+                <!-- Buttons ASIO: Control Panel + Test Routing -->
+                <StackPanel Orientation="Vertical" Spacing="6" Margin="0,8,0,0">
+                    <Button x:Name="OpenAsioControlPanelButton" Content="Open ASIO Control Panel" Width="200"/>
+                    <Button x:Name="TestRoutingButton" Content="Test routing" Width="200"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="Sample Rate :" FontWeight="Bold"/>
+                <ComboBox x:Name="SampleRateComboBox" SelectedIndex="0" Width="160">
+                    <ComboBoxItem Content="44100"/>
+                    <ComboBoxItem Content="48000"/>
+                    <ComboBoxItem Content="96000"/>
+                </ComboBox>
+
+                <TextBlock x:Name="DriverNoteText" Text="" FontStyle="Italic" Margin="0,8,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Input / Output Devices -->
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto" Margin="0,0,0,10">
+            <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
+                <TextBlock Text="Input Device :" FontWeight="Bold"/>
+                <ComboBox x:Name="InputDeviceComboBox" Width="220"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="Output Device :" FontWeight="Bold"/>
+                <ComboBox x:Name="OutputDeviceComboBox" Width="220"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Buffer Size & Latency / CPU -->
+        <StackPanel Spacing="4" Margin="0,0,0,10">
+            <TextBlock Text="Buffer Size (samples) :" FontWeight="Bold"/>
+            <ComboBox x:Name="BufferSizeComboBox" SelectedIndex="2" Width="120">
+                <ComboBoxItem Content="64"/>
+                <ComboBoxItem Content="128"/>
+                <ComboBoxItem Content="256"/>
+                <ComboBoxItem Content="512"/>
+            </ComboBox>
+
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,5,0,0">
+                <TextBlock x:Name="LatencyLabel" Text="~0 ms" FontStyle="Italic"/>
+                <TextBlock x:Name="CpuWarningLabel" Text="" Foreground="Red" FontWeight="Bold"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Sine Test Buttons -->
+        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,10">
+            <Button x:Name="StartSineButton" Content="Start Sine" Width="160" Height="35"/>
+            <Button x:Name="StopSineButton" Content="Stop Sine" Width="160" Height="35"/>
+        </StackPanel>
+
+        <!-- VU-meter -->
+        <TextBlock Text="VU-meter :" FontWeight="Bold" Margin="0,5,0,2"/>
+        <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="25"/>
+
+        <!-- ASIO channel mapping (visible only when ASIO selected) -->
+        <StackPanel Spacing="6" Margin="0,6,0,6">
+            <TextBlock Text="ASIO Input Mapping (Main L / Main R)" FontWeight="Bold"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <ComboBox x:Name="AsioInLeftComboBox" Width="95"/>
+                <ComboBox x:Name="AsioInRightComboBox" Width="95"/>
+            </StackPanel>
+
+            <TextBlock Text="ASIO Output Mapping (Main L / Main R)" FontWeight="Bold" Margin="0,6,0,0"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <ComboBox x:Name="AsioOutLeftComboBox" Width="95"/>
+                <ComboBox x:Name="AsioOutRightComboBox" Width="95"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Apply Button -->
+        <Button x:Name="ApplyButton" Content="Apply" Width="100" Height="35" HorizontalAlignment="Left"/>
+
+        <!-- Status Label -->
+        <TextBlock x:Name="StatusLabel" Text="" Foreground="DarkBlue" FontWeight="Bold" Margin="0,10,0,0" TextWrapping="Wrap"/>
+    </StackPanel>
+</Window>

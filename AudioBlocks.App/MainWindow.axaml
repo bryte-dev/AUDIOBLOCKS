@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AudioBlocks.App.MainWindow"
+        Width="900"
+        Height="550"
+        Title="AudioBlocks">
+
+    <Grid ColumnDefinitions="220,*" Margin="10">
+
+        <!-- ===== LEFT PANEL ===== -->
+        <StackPanel Spacing="12">
+
+            <Button x:Name="OpenAudioSettingsButton"
+                    Content="Audio Settings"
+                    Height="36"/>
+
+            <Button x:Name="OpenEffectsLibraryButton"
+                    Content="Effects Library"
+                    Height="36"/>
+
+            <Separator/>
+
+            <Button x:Name="ToggleMonitoringButton"
+                    Content="Monitoring OFF"
+                    Height="40"/>
+
+            <TextBlock x:Name="StatusLabel"
+                       Text=""
+                       TextWrapping="Wrap"
+                       FontWeight="Bold"/>
+
+            <TextBlock x:Name="CpuLabel"
+                       Text="CPU OK"
+                       FontWeight="Bold"/>
+
+            <Separator/>
+
+            <TextBlock Text="VU Meter"/>
+            <ProgressBar x:Name="VuMeter"
+                         Minimum="0"
+                         Maximum="1"
+                         Height="20"/>
+
+        </StackPanel>
+
+        <!-- ===== MAIN EFFECT CHAIN ===== -->
+        <StackPanel Grid.Column="1"
+                    Margin="15,0,0,0"
+                    Spacing="15">
+
+            <TextBlock Text="Effect Chain"
+                       FontSize="18"
+                       FontWeight="Bold"/>
+
+            <!-- Gain -->
+            <Border Padding="10"
+                    Background="#FFEFEFEF"
+                    CornerRadius="6">
+                <StackPanel>
+                    <TextBlock Text="Gain"/>
+                    <Slider x:Name="GainSlider"
+                            Minimum="0"
+                            Maximum="2"
+                            Value="1"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Future effects injected here -->
+                   <TextBlock Text="Current Effects" FontWeight="Bold" Margin="0,10,0,0"/>
+<StackPanel x:Name="EffectsPanel" Orientation="Vertical" Spacing="5" Background="#FFEFEFEF" Height="150"/>
+
+        </StackPanel>
+
+
+
+    </Grid>
+</Window>

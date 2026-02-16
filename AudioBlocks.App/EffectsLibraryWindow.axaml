@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AudioBlocks.App.EffectsLibraryWindow"
+        Width="350"
+        Height="450"
+        Title="Effects Library"
+        WindowStartupLocation="CenterOwner">
+
+    <StackPanel Margin="10" Spacing="10">
+
+        <TextBlock Text="Available Effects" FontWeight="Bold" FontSize="16"/>
+
+        <ListBox x:Name="AvailableEffectsList" Height="120"/>
+
+        <Button x:Name="AddEffectButton" Content="Add Effect" Height="30"/>
+
+        <TextBlock Text="Current Effects" FontWeight="Bold" FontSize="16" Margin="0,10,0,0"/>
+
+        <ListBox x:Name="CurrentEffectsList" Height="150"/>
+
+        <Button x:Name="RemoveEffectButton" Content="Remove Selected Effect" Height="30"/>
+
+        <TextBlock x:Name="StatusLabel" Text="" Foreground="DarkBlue" FontWeight="Bold" TextWrapping="Wrap"/>
+    </StackPanel>
+</Window>
