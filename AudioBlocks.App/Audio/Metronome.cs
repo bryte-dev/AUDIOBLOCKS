@@ -1,25 +1,29 @@
 ﻿using System;
+using System.Threading;
 
 namespace AudioBlocks.App.Audio
 {
     /// <summary>
-    /// Synthesized metronome with configurable BPM.
-    /// Generates click sounds mixed into the output buffer.
+    /// High-precision synthesized metronome.
+    /// Uses fractional sample accumulation to avoid integer drift at all BPM values.
     /// </summary>
     public class Metronome
     {
         private volatile bool enabled;
         private volatile int bpm = 120;
+        private volatile float volume = 0.5f;
         private int sampleRate = 48000;
-        private long sampleCounter;
         private int beatsPerBar = 4;
-        private int currentBeat; // 0-based within bar
+        private int currentBeat;
+
+        // Sub-sample precision: fractional accumulator
+        private double sampleAccumulator;
 
         // Click synthesis
-        private const int ClickDurationSamples = 800;  // ~17ms
-        private const float ClickFreqHigh = 1500f;     // downbeat (1)
-        private const float ClickFreqLow = 1000f;      // other beats
-        private const float ClickAmplitude = 0.35f;
+        private int clickDurationSamples = 800;
+        private const float DownbeatFreq = 1800f;
+        private const float BeatFreq = 1200f;
+        private const float BaseAmplitude = 0.7f;
 
         // State
         private int clickRemaining;
@@ -29,15 +33,23 @@ namespace AudioBlocks.App.Audio
         public bool Enabled { get => enabled; set => enabled = value; }
         public int BPM { get => bpm; set => bpm = Math.Clamp(value, 30, 300); }
         public int BeatsPerBar { get => beatsPerBar; set => beatsPerBar = Math.Clamp(value, 1, 16); }
-        public int CurrentBeat => currentBeat + 1; // 1-based for display
+        public int CurrentBeat => currentBeat + 1;
 
-        public event Action<int>? OnBeat; // fires on each beat (1-based)
+        /// <summary>Volume 0..1. Thread-safe.</summary>
+        public float Volume { get => volume; set => volume = Math.Clamp(value, 0f, 1f); }
 
-        public void SetSampleRate(int sr) => sampleRate = sr > 0 ? sr : 48000;
+        public event Action<int>? OnBeat;
+
+        public void SetSampleRate(int sr)
+        {
+            sampleRate = sr > 0 ? sr : 48000;
+            // Scale click duration to ~16ms regardless of sample rate
+            clickDurationSamples = Math.Max(200, (int)(sampleRate * 0.016));
+        }
 
         public void Reset()
         {
-            sampleCounter = 0;
+            sampleAccumulator = 0;
             currentBeat = 0;
             clickRemaining = 0;
             clickPhase = 0;
@@ -45,41 +57,74 @@ namespace AudioBlocks.App.Audio
 
         /// <summary>
         /// Mix metronome clicks into the buffer. Called from audio callback.
+        /// Uses fractional accumulation for drift-free timing at any BPM.
         /// </summary>
-        public void Process(float[] buffer, int count, float volume = 1f)
+        public void Process(float[] buffer, int count)
         {
             if (!enabled) return;
 
-            int samplesPerBeat = (int)((60.0 / bpm) * sampleRate);
+            float vol = volume;
+            if (vol <= 0.001f) return;
+
+            // Fractional samples per beat for sub-sample precision
+            double samplesPerBeat = (60.0 / bpm) * sampleRate;
             if (samplesPerBeat <= 0) return;
+
+            int clickDur = clickDurationSamples;
+            double phaseInc;
 
             for (int i = 0; i < count; i++)
             {
-                // Check if we hit a new beat
-                if (sampleCounter % samplesPerBeat == 0)
+                // Fractional beat boundary detection
+                if (sampleAccumulator >= samplesPerBeat)
                 {
-                    currentBeat = (int)((sampleCounter / samplesPerBeat) % beatsPerBar);
-                    clickFreq = currentBeat == 0 ? ClickFreqHigh : ClickFreqLow;
-                    clickRemaining = ClickDurationSamples;
+                    sampleAccumulator -= samplesPerBeat;
+                    currentBeat = (currentBeat + 1) % beatsPerBar;
+
+                    clickFreq = currentBeat == 0 ? DownbeatFreq : BeatFreq;
+                    clickRemaining = clickDur;
                     clickPhase = 0;
 
-                    // Fire event (will be on audio thread — UI must dispatch)
                     try { OnBeat?.Invoke(currentBeat + 1); } catch { }
                 }
 
-                // Synthesize click
+                // Synthesize click with shaped envelope
                 if (clickRemaining > 0)
                 {
-                    float envelope = (float)clickRemaining / ClickDurationSamples; // decay
-                    envelope *= envelope; // quadratic decay — snappier
-                    float click = (float)(Math.Sin(clickPhase) * envelope * ClickAmplitude * volume);
-                    clickPhase += 2 * Math.PI * clickFreq / sampleRate;
+                    float t = 1f - (float)clickRemaining / clickDur;
+
+                    // Attack-decay envelope: fast 1ms attack, then exponential decay
+                    float attackSamples = sampleRate * 0.001f;
+                    float envelope;
+                    if (clickRemaining > clickDur - (int)attackSamples)
+                        envelope = 1f - (float)(clickDur - clickRemaining) / attackSamples; // ramp up
+                    else
+                        envelope = MathF.Exp(-t * 5f); // exponential decay
+
+                    // Add slight harmonic content for downbeat
+                    float click;
+                    phaseInc = 2.0 * Math.PI * clickFreq / sampleRate;
+                    if (currentBeat == 0)
+                    {
+                        // Downbeat: fundamental + octave for punch
+                        click = (float)(
+                            Math.Sin(clickPhase) * 0.7 +
+                            Math.Sin(clickPhase * 2.0) * 0.3
+                        );
+                    }
+                    else
+                    {
+                        click = (float)Math.Sin(clickPhase);
+                    }
+
+                    click *= envelope * BaseAmplitude * vol;
+                    clickPhase += phaseInc;
 
                     buffer[i] = Math.Clamp(buffer[i] + click, -1f, 1f);
                     clickRemaining--;
                 }
 
-                sampleCounter++;
+                sampleAccumulator += 1.0;
             }
         }
     }

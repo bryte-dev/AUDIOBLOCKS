@@ -21,39 +21,46 @@ namespace AudioBlocks.App.Effects
         public float Level { get; set; } = 0.7f;
 
         private float lpState;
+        // Anti-aliasing filter states (simple 2x oversample)
+        private float upFilterState;
+        private float downFilterState;
 
         public void Process(float[] buffer, int count)
         {
-            float driveGain = 1f + Drive * 14f;
-            float lpCoeff = 0.05f + Tone * 0.95f;
+            float driveGain = 1f + Drive * 19f;  // wider range for more character
             float outLevel = Level;
-
-            // Compensate volume: tanh(x) ≈ x for small x, ≈ 1 for large x
-            // Higher drive = more compression = louder perceived output
-            // Reduce output proportionally to keep consistent volume
             float compensation = 1f / MathF.Sqrt(driveGain);
+
+            // Tone filter: map 0..1 to cutoff coefficient
+            // 0 = very dark (~500Hz), 1 = wide open
+            float toneFreq = 500f + Tone * 15000f;
+            float toneCoeff = 1f - MathF.Exp(-2f * MathF.PI * toneFreq / 48000f);
 
             for (int i = 0; i < count; i++)
             {
                 float dry = buffer[i];
-
-                // Pre-clip input to prevent extreme values feeding tanh
                 float clipped = Math.Clamp(dry, -1f, 1f);
 
-                // Soft-clip with tanh
-                float wet = (float)Math.Tanh(clipped * driveGain);
+                // 2x oversample: upsample, process, downsample
+                // First sample (interpolated)
+                float up1 = (upFilterState + clipped) * 0.5f;
+                upFilterState = clipped;
+                // Second sample (original)
+                float up2 = clipped;
 
-                // Auto-compensate loudness based on drive amount
-                wet *= compensation;
+                // Waveshaping on both samples
+                float ws1 = MathF.Tanh(up1 * driveGain) * compensation;
+                float ws2 = MathF.Tanh(up2 * driveGain) * compensation;
 
-                // Tone filter (one-pole LP)
-                lpState += lpCoeff * (wet - lpState);
+                // Downsample with averaging (simple anti-alias)
+                float wet = (ws1 + ws2) * 0.5f;
+
+                // Tone filter
+                lpState += toneCoeff * (wet - lpState);
                 wet = lpState;
 
-                // Output level
                 wet *= outLevel;
 
-                // Mix dry/wet
                 buffer[i] = Math.Clamp(dry * (1f - Mix) + wet * Mix, -1f, 1f);
             }
         }

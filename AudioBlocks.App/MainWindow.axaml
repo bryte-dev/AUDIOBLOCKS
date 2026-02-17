@@ -1,153 +1,229 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:AudioBlocks.App.Controls"
         x:Class="AudioBlocks.App.MainWindow"
-        Width="1060" Height="720"
+        Width="1180" Height="820"
+        MinWidth="920" MinHeight="620"
         Title="AudioBlocks"
-        Background="{StaticResource AppBg}">
+        Background="{DynamicResource AppBg}">
 
   <Window.Styles>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="{StaticResource CardBg}"/>
-      <Setter Property="CornerRadius" Value="8"/>
-      <Setter Property="Padding" Value="14"/>
+      <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Padding" Value="16"/>
       <Setter Property="Margin" Value="0,4"/>
     </Style>
     <Style Selector="TextBlock.section">
       <Setter Property="FontWeight" Value="SemiBold"/>
-      <Setter Property="FontSize" Value="13"/>
-      <Setter Property="Foreground" Value="{StaticResource MutedText}"/>
-      <Setter Property="Margin" Value="0,0,0,4"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedText}"/>
+      <Setter Property="Margin" Value="0,0,0,3"/>
     </Style>
     <Style Selector="Button.lib-item">
       <Setter Property="HorizontalAlignment" Value="Stretch"/>
       <Setter Property="HorizontalContentAlignment" Value="Left"/>
       <Setter Property="Height" Value="34"/>
       <Setter Property="Padding" Value="10,0"/>
-      <Setter Property="Background" Value="{StaticResource SurfaceBg}"/>
-      <Setter Property="Foreground" Value="White"/>
-      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource FgText}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="CornerRadius" Value="6"/>
     </Style>
     <Style Selector="Button.transport">
-      <Setter Property="Width" Value="40"/>
-      <Setter Property="Height" Value="36"/>
-      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="Height" Value="42"/>
+      <Setter Property="MinWidth" Value="42"/>
+      <Setter Property="Padding" Value="10,0"/>
       <Setter Property="HorizontalContentAlignment" Value="Center"/>
       <Setter Property="VerticalContentAlignment" Value="Center"/>
-      <Setter Property="Background" Value="{StaticResource SurfaceBg}"/>
-      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="Foreground" Value="{DynamicResource FgText}"/>
+      <Setter Property="Margin" Value="3,0"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <!-- Drop target highlight -->
+    <Style Selector="Border.drop-target">
+      <Setter Property="BorderBrush" Value="{DynamicResource DropTarget}"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="10"/>
     </Style>
   </Window.Styles>
 
-  <Grid RowDefinitions="*,Auto" Margin="0">
-    <!-- MAIN AREA -->
-    <Grid Grid.Row="0" ColumnDefinitions="230,*">
+  <Grid RowDefinitions="*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="240,*">
 
       <!-- SIDEBAR -->
-      <Border Grid.Column="0" Background="{StaticResource PanelBg}" Padding="14">
-        <StackPanel Spacing="10">
-          <TextBlock Text="🎸 AudioBlocks" FontSize="18" FontWeight="Bold" Foreground="White"/>
-          <TextBlock Text="Live audio FX engine" Foreground="{StaticResource DimText}" FontSize="11"/>
-          <Separator Margin="0,4"/>
-          <Button x:Name="OpenAudioSettingsButton" Content="⚙  Audio Settings" HorizontalAlignment="Stretch" Height="36"/>
-          <Button x:Name="ToggleLibraryButton" Content="🎛  Effects Library ›" HorizontalAlignment="Stretch" Height="36"/>
-          <Separator Margin="0,4"/>
-          <Button x:Name="ToggleMonitoringButton" Content="▶  Start Monitoring" HorizontalAlignment="Stretch" Height="40"
-                  Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
-          <TextBlock x:Name="StatusLabel" Text="Ready" Foreground="{StaticResource MutedText}" TextWrapping="Wrap" FontSize="11" Margin="0,4"/>
-          <Separator Margin="0,2"/>
-          <Grid ColumnDefinitions="*,*">
-            <StackPanel Grid.Column="0"><TextBlock Classes="section" Text="CPU"/><TextBlock x:Name="CpuLabel" Text="—" Foreground="White" FontSize="12"/></StackPanel>
-            <StackPanel Grid.Column="1"><TextBlock Classes="section" Text="Latency"/><TextBlock x:Name="LatencySmallLabel" Text="—" Foreground="White" FontSize="12"/></StackPanel>
-          </Grid>
-          <TextBlock Classes="section" Text="Level" Margin="0,6,0,2"/>
-          <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="14"/>
-          <Separator Margin="0,4"/>
-          <TextBlock Text="Master Volume" FontWeight="SemiBold" Foreground="White" FontSize="12"/>
-          <Grid ColumnDefinitions="*,44">
-            <Slider x:Name="MasterSlider" Minimum="0" Maximum="2" Value="1" Grid.Column="0"/>
-            <TextBlock x:Name="MasterValueLabel" Text="0 dB" Grid.Column="1" Foreground="{StaticResource MutedText}" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="11"/>
-          </Grid>
-        </StackPanel>
+      <Border Grid.Column="0" Background="{DynamicResource PanelBg}" Padding="14">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="8">
+            <TextBlock Text="AudioBlocks" FontSize="22" FontWeight="Bold" Foreground="{DynamicResource FgText}" Margin="0,2,0,0"/>
+            <TextBlock Text="Live Audio FX Engine" Foreground="{DynamicResource DimText}" FontSize="11"/>
+            <Separator Margin="0,6"/>
+
+            <!-- Monitoring -->
+            <Button x:Name="ToggleMonitoringButton" HorizontalAlignment="Stretch" Height="44"
+                    Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="Bold" FontSize="14" CornerRadius="8">
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                <PathIcon Width="16" Height="16" Foreground="White"
+                          Data="M12,1C7.03,1,3,5.03,3,10v4c0,1.66,1.34,3,3,3h1V10H5c0-3.87,3.13-7,7-7s7,3.13,7,7v7h-2V10h2v4c0,1.66-1.34,3-3,3h-1"/>
+                <TextBlock Text="Start Monitoring" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <TextBlock x:Name="StatusLabel" Text="Ready" Foreground="{DynamicResource MutedText}" TextWrapping="Wrap" FontSize="11" Margin="0,2"/>
+
+            <Separator Margin="0,4"/>
+
+            <Button x:Name="OpenAudioSettingsButton" HorizontalAlignment="Stretch" Height="36" FontSize="12" CornerRadius="6">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Width="13" Height="13" Foreground="{DynamicResource FgText}"
+                          Data="M12,15.5A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Zm7.43-2.53c.04-.32.07-.65.07-1s-.03-.68-.07-1l2.11-1.65a.5.5,0,0,0,.12-.64l-2-3.46a.5.5,0,0,0-.61-.22l-2.49,1a7.45,7.45,0,0,0-1.72-1L14.51,2.42A.5.5,0,0,0,14,2H10a.5.5,0,0,0-.5.42L9.15,5a7.45,7.45,0,0,0-1.72,1l-2.49-1a.5.5,0,0,0-.61.22l-2,3.46a.49.49,0,0,0,.12.64L4.57,11c-.04.32-.07.65-.07,1s.03.68.07,1L2.46,14.65a.5.5,0,0,0-.12.64l2,3.46a.5.5,0,0,0,.61.22l2.49-1a7.45,7.45,0,0,0,1.72,1l.36,2.54A.5.5,0,0,0,10,22h4a.5.5,0,0,0,.5-.42l.36-2.54a7.45,7.45,0,0,0,1.72-1l2.49,1a.5.5,0,0,0,.61-.22l2-3.46a.5.5,0,0,0-.12-.64Z"/>
+                <TextBlock Text="Audio Settings" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+            <Button x:Name="ToggleLibraryButton" HorizontalAlignment="Stretch" Height="36" FontSize="12" CornerRadius="6">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Width="13" Height="13" Foreground="{DynamicResource FgText}"
+                          Data="M4,6H2V20c0,1.1,.9,2,2,2H18V20H4ZM20,2H8C6.9,2,6,2.9,6,4V16c0,1.1,.9,2,2,2H20c1.1,0,2-.9,2-2V4C22,2.9,21.1,2,20,2Zm0,14H8V4H20Z"/>
+                <TextBlock Text="Effects Library" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+
+            <Separator Margin="0,4"/>
+
+            <!-- Meters compact -->
+            <Grid ColumnDefinitions="*,*">
+              <StackPanel Grid.Column="0"><TextBlock Classes="section" Text="CPU"/><TextBlock x:Name="CpuLabel" Text="--" Foreground="{DynamicResource FgTextSecondary}" FontSize="12" FontWeight="SemiBold"/></StackPanel>
+              <StackPanel Grid.Column="1"><TextBlock Classes="section" Text="Latency"/><TextBlock x:Name="LatencySmallLabel" Text="--" Foreground="{DynamicResource FgTextSecondary}" FontSize="12" FontWeight="SemiBold"/></StackPanel>
+            </Grid>
+
+            <!-- Level meter -->
+            <TextBlock Classes="section" Text="Level" Margin="0,6,0,1"/>
+            <c:LevelMeter x:Name="VuMeter" Height="18"/>
+            <TextBlock x:Name="PeakDbLabel" Text="-inf dB" Foreground="{DynamicResource DimText}" FontSize="10" HorizontalAlignment="Right"/>
+
+            <Separator Margin="0,4"/>
+
+            <!-- Master fader -->
+            <TextBlock Text="Master" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="12"/>
+            <Grid ColumnDefinitions="*,44">
+              <c:FaderControl x:Name="MasterFader" Minimum="0" Maximum="2" Value="1" DefaultValue="1" Height="28"
+                              Accent="{DynamicResource AccentCyan}" Label=""/>
+              <TextBlock x:Name="MasterValueLabel" Text="0 dB" Grid.Column="1" Foreground="{DynamicResource FgTextSecondary}" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="11"/>
+            </Grid>
+
+            <Separator Margin="0,4"/>
+
+            <!-- Metronome -->
+            <TextBlock Text="Metronome" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="12"/>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <ToggleButton x:Name="MetronomeToggle" Width="36" Height="28" FontSize="10" Content="ON"
+                            Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource FgText}" FontWeight="SemiBold" CornerRadius="6"/>
+              <Button x:Name="BpmDownButton" Width="28" Height="28" Content="-" Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource FgText}" CornerRadius="6" FontSize="12"/>
+              <TextBlock x:Name="BpmLabel" Text="120" Foreground="{DynamicResource FgText}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Width="36" TextAlignment="Center"/>
+              <Button x:Name="BpmUpButton" Width="28" Height="28" Content="+" Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource FgText}" CornerRadius="6" FontSize="12"/>
+              <TextBlock x:Name="BeatIndicator" Text="1/4" Foreground="{DynamicResource AccentCyan}" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"/>
+            </StackPanel>
+            <Grid ColumnDefinitions="*,34">
+              <c:FaderControl x:Name="MetronomeVolumeFader" Minimum="0" Maximum="1" Value="0.5" DefaultValue="0.5" Height="24"
+                              Accent="{DynamicResource AccentPurple}" Label=""/>
+              <TextBlock x:Name="MetronomeVolLabel" Grid.Column="1" Text="50%" Foreground="{DynamicResource DimText}" FontSize="10" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
       </Border>
 
       <!-- CONTENT -->
       <Grid Grid.Column="1" ColumnDefinitions="*,Auto">
+
+        <!-- Effect chain with drag & drop area -->
         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="10,10,0,10">
-          <StackPanel Spacing="10">
+          <StackPanel Spacing="8">
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Effect Chain" FontSize="18" FontWeight="Bold" Foreground="White"/>
-              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                <Button x:Name="MoveUpButton" Content="▲" Width="30" Height="26" FontSize="11"/>
-                <Button x:Name="MoveDownButton" Content="▼" Width="30" Height="26" FontSize="11"/>
-                <Button x:Name="RebuildGraphButton" Content="↻" Width="30" Height="26" FontSize="11"/>
+              <TextBlock Text="Effect Chain" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource FgText}"/>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                <Button x:Name="MoveUpButton" Height="28" Padding="6,0" CornerRadius="6">
+                  <PathIcon Width="11" Height="11" Foreground="{DynamicResource FgText}" Data="M7,14l5-5,5,5Z"/>
+                </Button>
+                <Button x:Name="MoveDownButton" Height="28" Padding="6,0" CornerRadius="6">
+                  <PathIcon Width="11" Height="11" Foreground="{DynamicResource FgText}" Data="M7,10l5,5,5-5Z"/>
+                </Button>
+                <Button x:Name="RebuildGraphButton" Content="Rebuild" Height="28" FontSize="11" Padding="8,0" CornerRadius="6"/>
               </StackPanel>
             </Grid>
-            <StackPanel x:Name="EffectsPanel" Spacing="6"/>
-            <Border x:Name="EmptyChainHint" Classes="card" IsVisible="True">
-              <TextBlock Text="No effects — open the library to add some ›" Foreground="{StaticResource DimText}" FontSize="12" HorizontalAlignment="Center"/>
+
+            <!-- Drag & drop target zone -->
+            <Border x:Name="DropZone" MinHeight="40" CornerRadius="10" Padding="0" Background="Transparent"
+                    DragDrop.AllowDrop="True">
+              <StackPanel x:Name="EffectsPanel" Spacing="6"/>
             </Border>
+
+            <Border x:Name="EmptyChainHint" Classes="card" IsVisible="True">
+              <StackPanel HorizontalAlignment="Center" Spacing="4">
+                <TextBlock Text="Drag effects here or use the library" Foreground="{DynamicResource DimText}" FontSize="12" HorizontalAlignment="Center"/>
+                <TextBlock Text="Drag to reorder" Foreground="{DynamicResource DimText}" FontSize="10" HorizontalAlignment="Center" FontStyle="Italic"/>
+              </StackPanel>
+            </Border>
+
             <Border Classes="card">
               <StackPanel Spacing="4">
-                <TextBlock Text="Log" FontWeight="SemiBold" Foreground="White" FontSize="12"/>
-                <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="60" Background="{StaticResource SurfaceBg}" Foreground="{StaticResource MutedText}" FontSize="10"/>
+                <TextBlock Text="Log" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="12"/>
+                <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" Height="60"
+                         Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource MutedText}" FontSize="10"/>
               </StackPanel>
             </Border>
           </StackPanel>
         </ScrollViewer>
 
         <!-- LIBRARY PANEL -->
-        <Border x:Name="LibraryPanel" Grid.Column="1" Width="220" Background="{StaticResource PanelBg}" Padding="12" IsVisible="False">
+        <Border x:Name="LibraryPanel" Grid.Column="1" Width="220" Background="{DynamicResource PanelBg}" Padding="12" IsVisible="False">
           <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="8">
-              <TextBlock Text="Effects Library" FontSize="14" FontWeight="Bold" Foreground="White"/>
-              <TextBlock Text="Click to add to chain" Foreground="{StaticResource DimText}" FontSize="10"/>
-              <Separator Margin="0,2"/>
-              <TextBlock Text="DYNAMICS" Foreground="{StaticResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
-              <Button x:Name="AddGainBtn" Classes="lib-item" Content="⚡ Gain Boost"/>
-              <Button x:Name="AddCompressorBtn" Classes="lib-item" Content="🗜 Compressor"/>
-              <Button x:Name="AddGateBtn" Classes="lib-item" Content="🚪 Noise Gate"/>
-              <TextBlock Text="TONE" Foreground="{StaticResource AccentCyan}" FontSize="10" FontWeight="Bold" Margin="0,6,0,0"/>
-              <Button x:Name="AddEqBtn" Classes="lib-item" Content="📊 EQ"/>
-              <Button x:Name="AddDistortionBtn" Classes="lib-item" Content="🔥 Distortion"/>
-              <TextBlock Text="TIME / MOD" Foreground="#B388FF" FontSize="10" FontWeight="Bold" Margin="0,6,0,0"/>
-              <Button x:Name="AddDelayBtn" Classes="lib-item" Content="📡 Delay"/>
-              <Button x:Name="AddReverbBtn" Classes="lib-item" Content="🌊 Reverb"/>
-              <Button x:Name="AddChorusBtn" Classes="lib-item" Content="🌀 Chorus"/>
+            <StackPanel Spacing="6">
+              <TextBlock Text="Effects Library" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource FgText}"/>
+              <TextBlock Text="Click or drag to chain" Foreground="{DynamicResource DimText}" FontSize="10"/>
+              <Separator Margin="0,3"/>
+              <TextBlock Text="DYNAMICS" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold"/>
+              <Button x:Name="AddGainBtn" Classes="lib-item" Content="Gain Boost"/>
+              <Button x:Name="AddCompressorBtn" Classes="lib-item" Content="Compressor"/>
+              <Button x:Name="AddGateBtn" Classes="lib-item" Content="Noise Gate"/>
+              <TextBlock Text="TONE" Foreground="{DynamicResource AccentCyan}" FontSize="10" FontWeight="Bold" Margin="0,6,0,0"/>
+              <Button x:Name="AddEqBtn" Classes="lib-item" Content="EQ"/>
+              <Button x:Name="AddDistortionBtn" Classes="lib-item" Content="Distortion"/>
+              <TextBlock Text="TIME / MOD" Foreground="{DynamicResource AccentPurple}" FontSize="10" FontWeight="Bold" Margin="0,6,0,0"/>
+              <Button x:Name="AddDelayBtn" Classes="lib-item" Content="Delay"/>
+              <Button x:Name="AddReverbBtn" Classes="lib-item" Content="Reverb"/>
+              <Button x:Name="AddChorusBtn" Classes="lib-item" Content="Chorus"/>
               <Separator Margin="0,6"/>
-              <TextBlock Text="PRESETS" Foreground="{StaticResource MutedText}" FontSize="10" FontWeight="Bold"/>
-              <Button x:Name="PresetCleanBtn" Classes="lib-item" Content="🎸 Clean Tone"/>
-              <Button x:Name="PresetCrunchBtn" Classes="lib-item" Content="🔊 Crunch"/>
-              <Button x:Name="PresetLeadBtn" Classes="lib-item" Content="🎵 Lead"/>
-              <Button x:Name="PresetAmbientBtn" Classes="lib-item" Content="🌌 Ambient"/>
+              <TextBlock Text="PRESETS" Foreground="{DynamicResource MutedText}" FontSize="10" FontWeight="Bold"/>
+              <Button x:Name="PresetCleanBtn" Classes="lib-item" Content="Clean Tone"/>
+              <Button x:Name="PresetCrunchBtn" Classes="lib-item" Content="Crunch"/>
+              <Button x:Name="PresetLeadBtn" Classes="lib-item" Content="Lead"/>
+              <Button x:Name="PresetAmbientBtn" Classes="lib-item" Content="Ambient"/>
             </StackPanel>
           </ScrollViewer>
         </Border>
       </Grid>
     </Grid>
 
-    <!-- ===== TRANSPORT BAR (bottom) ===== -->
-    <Border Grid.Row="1" Background="{StaticResource PanelBg}" Padding="12,8" BorderThickness="0,1,0,0" BorderBrush="#252A31">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,20,Auto,Auto,Auto,Auto,*,Auto">
-
-        <!-- RECORD / PLAY / STOP -->
-        <Button x:Name="RecordButton" Grid.Column="0" Classes="transport" Content="⏺" Foreground="#FF6B6B"/>
-        <Button x:Name="PlayButton" Grid.Column="1" Classes="transport" Content="▶"/>
-        <Button x:Name="StopButton" Grid.Column="2" Classes="transport" Content="⏹"/>
-        <Button x:Name="ExportButton" Grid.Column="3" Classes="transport" Content="💾" ToolTip.Tip="Export WAV"/>
-
-        <!-- METRONOME -->
-        <ToggleButton x:Name="MetronomeToggle" Grid.Column="5" Width="36" Height="36" FontSize="16"
-                       Content="🥁" ToolTip.Tip="Metronome" Background="{StaticResource SurfaceBg}" Foreground="White"/>
-        <Button x:Name="BpmDownButton" Grid.Column="6" Classes="transport" Content="−" Width="30"/>
-        <TextBlock x:Name="BpmLabel" Grid.Column="7" Text="120 BPM" Foreground="White" FontWeight="SemiBold"
-                   FontSize="13" VerticalAlignment="Center" Margin="6,0" Width="70" TextAlignment="Center"/>
-        <Button x:Name="BpmUpButton" Grid.Column="8" Classes="transport" Content="+" Width="30"/>
-
-        <!-- TRANSPORT INFO -->
-        <StackPanel Grid.Column="10" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <TextBlock x:Name="RecordTimeLabel" Text="00:00.0" Foreground="{StaticResource MutedText}" FontSize="12" FontFamily="Consolas"/>
-          <ProgressBar x:Name="PlaybackProgress" Minimum="0" Maximum="1" Value="0" Width="120" Height="8" VerticalAlignment="Center"/>
-          <TextBlock x:Name="BeatIndicator" Text="●○○○" Foreground="{StaticResource AccentCyan}" FontSize="14" VerticalAlignment="Center"/>
+    <!-- TRANSPORT BAR -->
+    <Border Grid.Row="1" Background="{DynamicResource PanelBg}" Padding="14,8" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SurfaceBg}">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="3">
+          <Button x:Name="RecordButton" Classes="transport" ToolTip.Tip="Record">
+            <Ellipse Width="14" Height="14" Fill="#EF4444"/>
+          </Button>
+          <Button x:Name="PlayButton" Classes="transport" ToolTip.Tip="Play">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource FgText}" Data="M8,5V19l11-7Z"/>
+          </Button>
+          <Button x:Name="StopButton" Classes="transport" ToolTip.Tip="Stop">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource FgText}" Data="M6,6H18V18H6Z"/>
+          </Button>
+          <Button x:Name="ExportButton" Classes="transport" ToolTip.Tip="Export WAV">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource FgText}" Data="M5,20h14v-2H5ZM19,9H15V3H9V9H5l7,7Z"/>
+          </Button>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock x:Name="RecordTimeLabel" Text="00:00.0" Foreground="{DynamicResource MutedText}" FontSize="14" FontFamily="Consolas" FontWeight="SemiBold"/>
+          <ProgressBar x:Name="PlaybackProgress" Minimum="0" Maximum="1" Value="0" Width="160" Height="6" VerticalAlignment="Center"/>
         </StackPanel>
       </Grid>
     </Border>

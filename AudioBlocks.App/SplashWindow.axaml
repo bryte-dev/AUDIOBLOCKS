@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AudioBlocks.App.SplashWindow"
+        Width="400" Height="200"
+        CanResize="False"
+        SystemDecorations="None"
+        WindowStartupLocation="CenterScreen"
+        Background="#0F1115"
+        TransparencyLevelHint="None">
+
+  <Border CornerRadius="12" Background="#0F1115" BorderBrush="#2A2D35" BorderThickness="1" Padding="32">
+    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+      <TextBlock Text="AudioBlocks" FontSize="28" FontWeight="Bold" Foreground="#F0F0F0"
+                 HorizontalAlignment="Center"/>
+      <TextBlock Text="Live Audio FX Engine" FontSize="13" Foreground="#6B7280"
+                 HorizontalAlignment="Center"/>
+      <ProgressBar IsIndeterminate="True" Height="4" Width="200" Foreground="#FF6B6B"/>
+      <TextBlock x:Name="StatusText" Text="Initializing audio engine..."
+                 FontSize="11" Foreground="#A0A6B0" HorizontalAlignment="Center"/>
+    </StackPanel>
+  </Border>
+</Window>

@@ -1,48 +1,132 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AudioBlocks.App.EffectsLibraryWindow"
-        Width="400" Height="550"
+        Width="280" Height="620"
+        MinWidth="240" MinHeight="400"
         Title="Effects Library"
-        Background="#0F1115" Foreground="White"
-        WindowStartupLocation="CenterOwner">
+        Background="{DynamicResource AppBg}"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
 
   <Window.Styles>
-    <Style Selector="Border.card">
-      <Setter Property="Background" Value="#121417"/>
-      <Setter Property="CornerRadius" Value="10"/>
-      <Setter Property="Padding" Value="12"/>
-      <Setter Property="Margin" Value="0,6"/>
-      <Setter Property="BorderBrush" Value="#252A31"/>
+    <Style Selector="Border.fx-item">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="10,8"/>
+      <Setter Property="Margin" Value="0,2"/>
+      <Setter Property="Cursor" Value="Hand"/>
     </Style>
-    <Style Selector="ListBox">
-      <Setter Property="Background" Value="#0A0C10"/>
-      <Setter Property="Foreground" Value="White"/>
+    <Style Selector="Border.fx-item:pointerover">
+      <Setter Property="Background" Value="{DynamicResource CardSelected}"/>
     </Style>
-    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="#FF6B6B"/>
-      <Setter Property="Foreground" Value="White"/>
+    <Style Selector="Border.preset-item">
+      <Setter Property="Background" Value="{DynamicResource CardBg}"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="10,6"/>
+      <Setter Property="Margin" Value="0,2"/>
+      <Setter Property="Cursor" Value="Hand"/>
     </Style>
   </Window.Styles>
 
-  <StackPanel Margin="15" Spacing="10">
-    <TextBlock Text="Effects Library" FontSize="20" FontWeight="Bold"/>
+  <Border Background="{DynamicResource PanelBg}" Padding="14">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Effects Library" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource FgText}"/>
+        <TextBlock Text="Click to add — or drag to chain" Foreground="{DynamicResource DimText}" FontSize="11"/>
+        <Separator Margin="0,4"/>
 
-    <Border Classes="card">
-      <StackPanel Spacing="8">
-        <TextBlock Text="Available Effects" Foreground="#9AA0A6" FontSize="12"/>
-        <ListBox x:Name="AvailableEffectsList" Height="150"/>
-        <Button x:Name="AddEffectButton" Content="Add to Chain" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+        <!-- DYNAMICS -->
+        <TextBlock Text="DYNAMICS" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold" Margin="0,4,0,2"/>
+        <Border Classes="fx-item" x:Name="DragGain" Tag="Gain">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentBrush}"
+                      Data="M3,17v2h6v-2ZM3,5V7h10V5Zm10,16v-2h8v-2H13v-2H11v6ZM7,9v2H3v2H7v2H9V9Zm14,4V11H11v2Zm-6-4h2V7h4V5H15V3H13Z"/>
+            <TextBlock Text="Gain Boost" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragCompressor" Tag="Compressor">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentBrush}"
+                      Data="M16,4l-4,4H8V16h4l4,4ZM19.73,12c0-1.56-.48-3-.91-3.73l-1.44.83c.3.5.65,1.62.65,2.9s-.35,2.4-.65,2.9l1.44.83C19.25,15,19.73,13.56,19.73,12Z"/>
+            <TextBlock Text="Compressor" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragGate" Tag="NoiseGate">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentBrush}"
+                      Data="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,.9-2,2v10c0,1.1,.9,2,2,2h12c1.1,0,2-.9,2-2V10C20,8.9,19.1,8,18,8ZM12,17c-1.1,0-2-.9-2-2s.9-2,2-2,2,.9,2,2-.9,2-2,2ZM15,8H9V6c0-1.66,1.34-3,3-3s3,1.34,3,3Z"/>
+            <TextBlock Text="Noise Gate" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+
+        <!-- TONE -->
+        <TextBlock Text="TONE" Foreground="{DynamicResource AccentCyan}" FontSize="10" FontWeight="Bold" Margin="0,8,0,2"/>
+        <Border Classes="fx-item" x:Name="DragEq" Tag="EQ">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
+                      Data="M7,18h2V6H7ZM11,18h2V10H11Zm4,0h2V14H15Z"/>
+            <TextBlock Text="EQ (3-Band)" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragDistortion" Tag="Distortion">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
+                      Data="M7,2v11h3v9l7-12h-4l3-8Z"/>
+            <TextBlock Text="Distortion" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragFuzz" Tag="Fuzz">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
+                      Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2ZM11,19.93c-3.95-.49-7-3.85-7-7.93,0-.62,.08-1.22,.21-1.79L9,15v1c0,1.1,.9,2,2,2Zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55,0,1-.45,1-1V7h2c1.1,0,2-.9,2-2v-.41c2.93,1.19,5,4.06,5,7.41,0,2.08-.8,3.97-2.1,5.39Z"/>
+            <TextBlock Text="Fuzz" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+
+        <!-- TIME / MOD -->
+        <TextBlock Text="TIME / MOD" Foreground="{DynamicResource AccentPurple}" FontSize="10" FontWeight="Bold" Margin="0,8,0,2"/>
+        <Border Classes="fx-item" x:Name="DragDelay" Tag="Delay">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentPurple}"
+                      Data="M11.99,2C6.47,2,2,6.48,2,12s4.47,10,9.99,10C17.52,22,22,17.52,22,12S17.52,2,11.99,2ZM12,20c-4.42,0-8-3.58-8-8s3.58-8,8-8,8,3.58,8,8-3.58,8-8,8Zm.5-13H11v6l5.25,3.15.75-1.23-4.5-2.67Z"/>
+            <TextBlock Text="Delay" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragReverb" Tag="Reverb">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentPurple}"
+                      Data="M14,3.23v2.06c2.89,.86,5,3.54,5,6.71s-2.11,5.85-5,6.71v2.06c4.01-.91,7-4.49,7-8.77s-2.99-7.86-7-8.77Zm-4,1.77H6C4.9,5,4,5.9,4,7v10c0,1.1,.9,2,2,2h4l5,5V0Z"/>
+            <TextBlock Text="Reverb" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragChorus" Tag="Chorus">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentPurple}"
+                      Data="M12,3v10.55c-.59-.34-1.27-.55-2-.55C7.79,13,6,14.79,6,17s1.79,4,4,4,4-1.79,4-4V7h4V3Z"/>
+            <TextBlock Text="Chorus" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
+
+        <Separator Margin="0,8"/>
+
+        <!-- PRESETS -->
+        <TextBlock Text="PRESETS" Foreground="{DynamicResource MutedText}" FontSize="10" FontWeight="Bold"/>
+        <Border Classes="preset-item" x:Name="PresetClean" Tag="Clean">
+          <TextBlock Text="Clean Tone" Foreground="{DynamicResource FgText}" FontSize="12"/>
+        </Border>
+        <Border Classes="preset-item" x:Name="PresetCrunch" Tag="Crunch">
+          <TextBlock Text="Crunch" Foreground="{DynamicResource FgText}" FontSize="12"/>
+        </Border>
+        <Border Classes="preset-item" x:Name="PresetLead" Tag="Lead">
+          <TextBlock Text="Lead" Foreground="{DynamicResource FgText}" FontSize="12"/>
+        </Border>
+        <Border Classes="preset-item" x:Name="PresetAmbient" Tag="Ambient">
+          <TextBlock Text="Ambient" Foreground="{DynamicResource FgText}" FontSize="12"/>
+        </Border>
+
+        <Separator Margin="0,6"/>
+        <TextBlock x:Name="StatusLabel" Text="" Foreground="{DynamicResource AccentCyan}" FontSize="11" HorizontalAlignment="Center"/>
       </StackPanel>
-    </Border>
-
-    <Border Classes="card">
-      <StackPanel Spacing="8">
-        <TextBlock Text="Current Chain" Foreground="#9AA0A6" FontSize="12"/>
-        <ListBox x:Name="CurrentEffectsList" Height="150"/>
-        <Button x:Name="RemoveEffectButton" Content="Remove Selected" Foreground="#FF6B6B" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-      </StackPanel>
-    </Border>
-
-    <TextBlock x:Name="StatusLabel" Text="" Foreground="#4DD0E1" HorizontalAlignment="Center" FontWeight="Bold"/>
-  </StackPanel>
+    </ScrollViewer>
+  </Border>
 </Window>

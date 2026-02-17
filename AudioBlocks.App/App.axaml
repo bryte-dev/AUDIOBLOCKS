@@ -8,13 +8,61 @@
     </Application.Styles>
 
     <Application.Resources>
-        <SolidColorBrush x:Key="AppBg" Color="#0F1115"/>
-        <SolidColorBrush x:Key="PanelBg" Color="#1A1D23"/>
-        <SolidColorBrush x:Key="CardBg" Color="#22252B"/>
-        <SolidColorBrush x:Key="SurfaceBg" Color="#2A2D35"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#FF6B6B"/>
-        <SolidColorBrush x:Key="AccentCyan" Color="#4DD0E1"/>
-        <SolidColorBrush x:Key="MutedText" Color="#8A8F98"/>
-        <SolidColorBrush x:Key="DimText" Color="#5A5F68"/>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBg" Color="#0F1115"/>
+                    <SolidColorBrush x:Key="PanelBg" Color="#1A1D23"/>
+                    <SolidColorBrush x:Key="CardBg" Color="#22252B"/>
+                    <SolidColorBrush x:Key="SurfaceBg" Color="#2A2D35"/>
+                    <SolidColorBrush x:Key="AccentBrush" Color="#FF6B6B"/>
+                    <SolidColorBrush x:Key="AccentCyan" Color="#4DD0E1"/>
+                    <SolidColorBrush x:Key="AccentPurple" Color="#B388FF"/>
+                    <SolidColorBrush x:Key="MutedText" Color="#A0A6B0"/>
+                    <SolidColorBrush x:Key="DimText" Color="#6B7280"/>
+                    <SolidColorBrush x:Key="FgText" Color="#F0F0F0"/>
+                    <SolidColorBrush x:Key="FgTextSecondary" Color="#C8CCD4"/>
+                    <SolidColorBrush x:Key="KnobBody" Color="#2A2D35"/>
+                    <SolidColorBrush x:Key="KnobRing" Color="#3A3F48"/>
+                    <SolidColorBrush x:Key="KnobTrack" Color="#333840"/>
+                    <SolidColorBrush x:Key="KnobLabel" Color="#A0A6B0"/>
+                    <SolidColorBrush x:Key="KnobValue" Color="#E0E0E0"/>
+                    <SolidColorBrush x:Key="GrMeter" Color="#FF6B6B"/>
+                    <SolidColorBrush x:Key="GateClosed" Color="#FF6B6B"/>
+                    <SolidColorBrush x:Key="GateOpen" Color="#66BB6A"/>
+                    <SolidColorBrush x:Key="CardSelected" Color="#2A3040"/>
+                    <SolidColorBrush x:Key="CardDefault" Color="#22252B"/>
+                    <SolidColorBrush x:Key="BorderSelected" Color="#FF6B6B"/>
+                    <SolidColorBrush x:Key="DropTarget" Color="#33FF6B6B"/>
+                    <SolidColorBrush x:Key="DragGhost" Color="#AA22252B"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBg" Color="#F5F5F7"/>
+                    <SolidColorBrush x:Key="PanelBg" Color="#E8EAF0"/>
+                    <SolidColorBrush x:Key="CardBg" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="SurfaceBg" Color="#F0F1F4"/>
+                    <SolidColorBrush x:Key="AccentBrush" Color="#C62828"/>
+                    <SolidColorBrush x:Key="AccentCyan" Color="#00838F"/>
+                    <SolidColorBrush x:Key="AccentPurple" Color="#7C4DFF"/>
+                    <SolidColorBrush x:Key="MutedText" Color="#4A5568"/>
+                    <SolidColorBrush x:Key="DimText" Color="#8896A6"/>
+                    <SolidColorBrush x:Key="FgText" Color="#1A1A1A"/>
+                    <SolidColorBrush x:Key="FgTextSecondary" Color="#374151"/>
+                    <SolidColorBrush x:Key="KnobBody" Color="#E2E4E8"/>
+                    <SolidColorBrush x:Key="KnobRing" Color="#CBD0D8"/>
+                    <SolidColorBrush x:Key="KnobTrack" Color="#D0D4DC"/>
+                    <SolidColorBrush x:Key="KnobLabel" Color="#4A5568"/>
+                    <SolidColorBrush x:Key="KnobValue" Color="#1A1A1A"/>
+                    <SolidColorBrush x:Key="GrMeter" Color="#C62828"/>
+                    <SolidColorBrush x:Key="GateClosed" Color="#C62828"/>
+                    <SolidColorBrush x:Key="GateOpen" Color="#2E7D32"/>
+                    <SolidColorBrush x:Key="CardSelected" Color="#E3E7F0"/>
+                    <SolidColorBrush x:Key="CardDefault" Color="#FFFFFF"/>
+                    <SolidColorBrush x:Key="BorderSelected" Color="#C62828"/>
+                    <SolidColorBrush x:Key="DropTarget" Color="#33C62828"/>
+                    <SolidColorBrush x:Key="DragGhost" Color="#AAFFFFFF"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

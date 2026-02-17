@@ -36,56 +36,49 @@ namespace AudioBlocks.App.Audio
         public int SampleRate { get; set; } = 44100;
         public int BufferSize { get; set; } = 256;
 
-        // ASIO
         private string? asioDriverName;
         private AsioOut? asio;
         private int asioInputOffset, asioOutputOffset;
         private int asioInputCount = 1, asioOutputCount = 2;
 
-        // WASAPI
         private WasapiCapture? capture;
         private WasapiOut? playback;
         private BufferedWaveProvider? buffer;
         private WaveFormat? wasapiFormat;
 
-        // Audio buffer
         private float[] floatBuffer = Array.Empty<float>();
         private bool floatBufferFromPool;
         private readonly ArrayPool<float> pool = ArrayPool<float>.Shared;
 
-        // State
         public bool IsMonitoring { get; private set; }
         public float Level { get; private set; }
+        public float PeakLevel { get; private set; }
 
-        // CPU
         private readonly Stopwatch processingTimer = new();
         public bool CpuOverload { get; private set; }
         public event Action<bool>? OnCpuOverloadChanged;
         public event Action<bool>? OnMonitoringChanged;
 
-        // Log
         public event Action<string>? OnLog;
 
-        // Effects
         public AudioEffects Effects { get; } = new();
-
-        // ===== RECORDER =====
         public AudioRecorder Recorder { get; } = new();
-
-        // ===== METRONOME =====
         public Metronome Metronome { get; } = new();
 
-        // Test tone
         private volatile bool testActive;
         private volatile int testRemainingSamples;
         private double testPhase;
         private float testFrequency = 440f;
         private float testAmplitude = 0.6f;
 
-        // EMA
         private double processingEmaMs;
         private readonly double emaAlpha = 0.2;
         public double SmoothedProcessingMs => processingEmaMs;
+
+        // Peak hold for clip detection
+        private float peakHold;
+        private int peakHoldSamples;
+        private const int PeakHoldDuration = 48000; // ~1s at 48kHz
 
         public AudioEngine()
         {
@@ -103,37 +96,13 @@ namespace AudioBlocks.App.Audio
             floatBufferFromPool = true;
         }
 
-        // =========================================================
-        // CORE SIGNAL FLOW
-        // =========================================================
-        //
-        // LIVE (recording):
-        //   Input → Effects → Master → Record → Metronome → Output
-        //                                         (not recorded)
-        //
-        // PLAYBACK:
-        //   Recorded audio → (skip FX, already baked) → Metronome → Output
-        //
-        // =========================================================
-
-        /// <summary>
-        /// Unified processing pipeline for both WASAPI and ASIO callbacks.
-        /// </summary>
         private void ProcessAudioPipeline(int frames)
         {
             bool playing = Recorder.IsPlaying;
 
             if (playing)
             {
-                // Playback mode: recorded audio already has FX baked in.
-                // Just read it directly — do NOT re-apply effects.
                 int read = Recorder.ReadPlayback(floatBuffer, frames);
-                if (read == 0)
-                {
-                    // Playback finished, buffer already cleared by ReadPlayback
-                }
-
-                // Apply only master volume (user might want to adjust playback volume)
                 float vol = Effects.MasterVolume;
                 if (vol != 1f)
                     for (int i = 0; i < frames; i++)
@@ -141,20 +110,14 @@ namespace AudioBlocks.App.Audio
             }
             else
             {
-                // Live mode: apply full effect chain + master
                 Effects.Process(floatBuffer, frames);
-
-                // Record the processed signal BEFORE metronome
                 Recorder.WriteSamples(floatBuffer, frames);
             }
 
-            // Metronome is ALWAYS after recording — never captured in WAV
+            // Metronome uses its own Volume property
             Metronome.Process(floatBuffer, frames);
         }
 
-        // =========================================================
-        // DEVICE ENUMERATION
-        // =========================================================
         public List<MMDevice> GetInputDevices() => new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).ToList();
         public List<MMDevice> GetOutputDevices() => new MMDeviceEnumerator().EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).ToList();
         public static List<string> GetAsioDrivers() => AsioOut.GetDriverNames().ToList();
@@ -168,9 +131,6 @@ namespace AudioBlocks.App.Audio
             asioOutputCount = Math.Max(1, outputCount);
         }
 
-        // =========================================================
-        // TEST TONE
-        // =========================================================
         public void StartAsioTest(int durationMs = 1000, float frequency = 800f, float amplitude = 0.5f)
         {
             testFrequency = frequency; testAmplitude = amplitude;
@@ -187,9 +147,6 @@ namespace AudioBlocks.App.Audio
 
         public void StopAsioTest() { Volatile.Write(ref testActive, false); Interlocked.Exchange(ref testRemainingSamples, 0); }
 
-        // =========================================================
-        // PROBE ASIO
-        // =========================================================
         public (int inputCount, int outputCount) ProbeAsioChannels(string driverName)
         {
             try
@@ -208,16 +165,10 @@ namespace AudioBlocks.App.Audio
             catch (Exception ex) { OnLog?.Invoke($"ProbeAsio failed: {ex.Message}"); return (0, 0); }
         }
 
-        // =========================================================
-        // MONITORING
-        // =========================================================
         public void StartMonitoring() { if (!IsMonitoring) StartAudio(); }
         public void StopMonitoring() { if (IsMonitoring) StopAudio(); }
         public void RebuildAudioGraph() { bool r = IsMonitoring; StopAudio(); if (r) StartAudio(); }
 
-        // =========================================================
-        // START / STOP
-        // =========================================================
         public void StartAudio()
         {
             try
@@ -254,9 +205,6 @@ namespace AudioBlocks.App.Audio
             OnMonitoringChanged?.Invoke(false);
         }
 
-        // =========================================================
-        // WASAPI
-        // =========================================================
         private void StartWasapi()
         {
             if (InputDevice == null || OutputDevice == null) throw new InvalidOperationException("Input or Output device missing");
@@ -286,16 +234,13 @@ namespace AudioBlocks.App.Audio
 
             try
             {
-                // Decode input to floatBuffer
                 if (bits == 32 && isFloat)
                 { for (int f = 0, o = 0; f < frames; f++, o += blockAlign) { float s = 0f; for (int c = 0; c < channels; c++) s += BitConverter.ToSingle(e.Buffer, o + c * 4); floatBuffer[f] = s / channels; } }
                 else if (bits == 16 && !isFloat)
                 { for (int f = 0, o = 0; f < frames; f++, o += blockAlign) { int s = 0; for (int c = 0; c < channels; c++) { int ix = o + c * 2; s += (short)(e.Buffer[ix] | (e.Buffer[ix + 1] << 8)); } floatBuffer[f] = (s / (float)channels) / 32768f; } }
                 else Array.Clear(floatBuffer, 0, frames);
 
-                // Unified pipeline: FX → Record → Metronome (or Playback → Metronome)
                 ProcessAudioPipeline(frames);
-
                 WriteToBuffer(frames, wf);
                 UpdateMeters(frames);
             }
@@ -315,9 +260,6 @@ namespace AudioBlocks.App.Audio
             buffer?.AddSamples(outBuf, 0, outBuf.Length);
         }
 
-        // =========================================================
-        // ASIO
-        // =========================================================
         private void StartAsio()
         {
             if (string.IsNullOrEmpty(asioDriverName)) throw new InvalidOperationException("No ASIO driver selected");
@@ -341,7 +283,7 @@ namespace AudioBlocks.App.Audio
             try { asio.InitRecordAndPlayback(new SilenceProvider(SampleRate, outCnt), inCnt, SampleRate); }
             catch (Exception ex)
             {
-                OnLog?.Invoke($"ASIO Init failed: {ex.Message} — fallback");
+                OnLog?.Invoke($"ASIO Init failed: {ex.Message} -- fallback");
                 asio.Dispose(); asio = new AsioOut(asioDriverName);
                 asio.AudioAvailable += OnAsioAudioAvailable;
                 asio.InputChannelOffset = 0; asio.ChannelOffset = 0;
@@ -387,7 +329,6 @@ namespace AudioBlocks.App.Audio
                 var st = e.AsioSampleType;
                 EnsureFloatBuffer(samples);
 
-                // Test tone (bypasses everything)
                 if (Volatile.Read(ref testActive))
                 {
                     for (int i = 0; i < samples; i++) { floatBuffer[i] = (float)(testAmplitude * Math.Sin(testPhase)); testPhase += 2 * Math.PI * testFrequency / SampleRate; if (testPhase > 2 * Math.PI) testPhase -= 2 * Math.PI; }
@@ -396,16 +337,13 @@ namespace AudioBlocks.App.Audio
                     UpdateMeters(samples); e.WrittenToOutputBuffers = true; return;
                 }
 
-                // Read input
                 if (inCh >= 1 && localIn != null && localIn[0] != IntPtr.Zero)
                     ReadAsioInput(localIn[0], floatBuffer, samples, st);
                 else
                     Array.Clear(floatBuffer, 0, samples);
 
-                // Unified pipeline: FX → Record → Metronome (or Playback → Metronome)
                 ProcessAudioPipeline(samples);
 
-                // Output
                 if (localOut != null)
                     for (int c = 0; c < outCh; c++)
                         if (localOut[c] != IntPtr.Zero)
@@ -418,13 +356,34 @@ namespace AudioBlocks.App.Audio
             { try { OnLog?.Invoke("[ASIO] error: " + ex.Message); } catch { } if (e != null) e.WrittenToOutputBuffers = false; }
         }
 
-        // =========================================================
-        // METERS
-        // =========================================================
         private void UpdateMeters(int samples)
         {
-            float sum = 0f; for (int i = 0; i < samples; i++) sum += floatBuffer[i] * floatBuffer[i];
-            Level = (float)Math.Sqrt(sum / samples);
+            float sum = 0f;
+            float peak = 0f;
+            for (int i = 0; i < samples; i++)
+            {
+                float abs = MathF.Abs(floatBuffer[i]);
+                sum += floatBuffer[i] * floatBuffer[i];
+                if (abs > peak) peak = abs;
+            }
+            Level = MathF.Sqrt(sum / samples);
+
+            // Peak hold with decay
+            if (peak > peakHold)
+            {
+                peakHold = peak;
+                peakHoldSamples = PeakHoldDuration;
+            }
+            else if (peakHoldSamples > 0)
+            {
+                peakHoldSamples -= samples;
+            }
+            else
+            {
+                peakHold *= 0.995f; // slow decay
+            }
+            PeakLevel = peakHold;
+
             processingTimer.Stop();
             double ms = processingTimer.Elapsed.TotalMilliseconds;
             processingEmaMs = processingEmaMs <= 0.0 ? ms : emaAlpha * ms + (1.0 - emaAlpha) * processingEmaMs;

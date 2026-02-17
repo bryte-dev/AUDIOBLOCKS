@@ -3,18 +3,18 @@
         x:Class="AudioBlocks.App.AudioSettingsWindow"
         Title="Audio Settings"
         Width="680" Height="640"
-        Background="{StaticResource AppBg}"
+        Background="{DynamicResource AppBg}"
         WindowStartupLocation="CenterOwner">
 
   <Window.Styles>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="{StaticResource CardBg}"/>
+      <Setter Property="Background" Value="{DynamicResource CardBg}"/>
       <Setter Property="CornerRadius" Value="8"/>
       <Setter Property="Padding" Value="14"/>
       <Setter Property="Margin" Value="0,4"/>
     </Style>
     <Style Selector="TextBlock.label">
-      <Setter Property="Foreground" Value="{StaticResource MutedText}"/>
+      <Setter Property="Foreground" Value="{DynamicResource MutedText}"/>
       <Setter Property="FontSize" Value="12"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Margin" Value="0,0,0,3"/>
@@ -23,7 +23,21 @@
 
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="16" Spacing="10">
-      <TextBlock Text="Audio Settings" FontSize="18" FontWeight="Bold" Foreground="White"/>
+      <TextBlock Text="Audio Settings" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource FgText}"/>
+
+      <!-- THEME -->
+      <Border Classes="card">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Appearance" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Theme" VerticalAlignment="Center" Foreground="{DynamicResource MutedText}" FontSize="12"/>
+            <ComboBox x:Name="ThemeComboBox" Width="140">
+              <ComboBoxItem Content="Dark"/>
+              <ComboBoxItem Content="Light"/>
+            </ComboBox>
+          </StackPanel>
+        </StackPanel>
+      </Border>
 
       <!-- DRIVER + PARAMS -->
       <Border Classes="card">
@@ -63,7 +77,7 @@
           </StackPanel>
 
           <StackPanel Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2">
-            <TextBlock x:Name="DriverNoteText" Foreground="{StaticResource DimText}" FontSize="11" FontStyle="Italic" TextWrapping="Wrap"/>
+            <TextBlock x:Name="DriverNoteText" Foreground="{DynamicResource DimText}" FontSize="11" FontStyle="Italic" TextWrapping="Wrap"/>
           </StackPanel>
         </Grid>
       </Border>
@@ -71,7 +85,7 @@
       <!-- WASAPI DEVICES -->
       <Border Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="WASAPI Devices" FontWeight="SemiBold" Foreground="White"/>
+          <TextBlock Text="WASAPI Devices" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
           <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
             <StackPanel Grid.Column="0">
               <TextBlock Classes="label" Text="Input Device"/>
@@ -88,7 +102,7 @@
       <!-- ASIO MAPPING -->
       <Border Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="ASIO Channel Mapping" FontWeight="SemiBold" Foreground="White"/>
+          <TextBlock Text="ASIO Channel Mapping" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
           <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
             <StackPanel Grid.Column="0" Spacing="4">
               <TextBlock Classes="label" Text="Input L / R"/>
@@ -116,12 +130,12 @@
       <Border Classes="card">
         <StackPanel Spacing="6">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="Monitoring" FontWeight="SemiBold" Foreground="White"/>
-            <TextBlock x:Name="ProcessingLabel" Text="0.00 ms" Foreground="{StaticResource DimText}" FontSize="11" Grid.Column="1"/>
+            <TextBlock Text="Monitoring" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
+            <TextBlock x:Name="ProcessingLabel" Text="0.00 ms" Foreground="{DynamicResource DimText}" FontSize="11" Grid.Column="1"/>
           </Grid>
           <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="18"/>
           <StackPanel Orientation="Horizontal" Spacing="14">
-            <TextBlock x:Name="LatencyLabel" Text="—" Foreground="White" FontSize="12"/>
+            <TextBlock x:Name="LatencyLabel" Text="—" Foreground="{DynamicResource FgText}" FontSize="12"/>
             <TextBlock x:Name="CpuWarningLabel" Text="" Foreground="#FF6B6B" FontWeight="Bold" FontSize="12"/>
           </StackPanel>
         </StackPanel>
@@ -129,7 +143,7 @@
 
       <!-- ACTIONS -->
       <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button x:Name="ApplyButton" Content="Apply &amp; Start" Height="36" Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
+        <Button x:Name="ApplyButton" Content="Apply &amp; Start" Height="36" Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
         <Button x:Name="StartSineButton" Content="Start Sine" Height="36"/>
         <Button x:Name="StopSineButton" Content="Stop Sine" Height="36"/>
       </StackPanel>
@@ -137,9 +151,9 @@
       <!-- LOGS -->
       <Border Classes="card">
         <StackPanel Spacing="4">
-          <TextBlock Text="Log" FontWeight="SemiBold" Foreground="White"/>
+          <TextBlock Text="Log" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
           <TextBox x:Name="StatusLabel" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                   Height="120" Background="{StaticResource SurfaceBg}" Foreground="{StaticResource MutedText}" FontSize="11"/>
+                   Height="120" Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource MutedText}" FontSize="11"/>
         </StackPanel>
       </Border>
 

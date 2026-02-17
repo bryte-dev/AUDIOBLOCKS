@@ -1,5 +1,7 @@
 ﻿using AudioBlocks.App.Audio;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using NAudio.CoreAudioApi;
 using System;
@@ -25,8 +27,18 @@ namespace AudioBlocks.App
             InitializeComponent();
             engine = mainEngine;
 
+            // ===== THEME =====
+            ThemeComboBox.SelectedIndex = Application.Current?.RequestedThemeVariant == ThemeVariant.Light ? 1 : 0;
+            ThemeComboBox.SelectionChanged += (_, _) =>
+            {
+                if (Application.Current is not null)
+                    Application.Current.RequestedThemeVariant = ThemeComboBox.SelectedIndex == 1
+                        ? ThemeVariant.Light
+                        : ThemeVariant.Dark;
+            };
+
             engine.OnCpuOverloadChanged += overload =>
-                Dispatcher.UIThread.Post(() => CpuWarningLabel.Text = overload ? "⚠ CPU overload!" : "");
+                Dispatcher.UIThread.Post(() => CpuWarningLabel.Text = overload ? "CPU overload" : "");
 
             engine.OnMonitoringChanged += _ =>
                 Dispatcher.UIThread.Post(SyncControlStates);
@@ -189,12 +201,9 @@ namespace AudioBlocks.App
                 AsioOutRightComboBox.Items.Add($"Out {i + 1}");
             }
 
-            // Default input: In 1 (bass/instrument)
             AsioInLeftComboBox.SelectedIndex = 0;
             AsioInRightComboBox.SelectedIndex = AsioInRightComboBox.Items.Count >= 2 ? 1 : 0;
 
-            // Default output: Out 3/4 (DAW playback on MiniFuse = headphones)
-            // If driver has 4+ outputs, default to Out 3/4; otherwise Out 1/2
             if (AsioOutLeftComboBox.Items.Count >= 4)
             {
                 AsioOutLeftComboBox.SelectedIndex = 2;
@@ -317,7 +326,7 @@ namespace AudioBlocks.App
                 {
                     int inIdx = AsioInLeftComboBox.SelectedIndex + 1;
                     int outIdx = AsioOutLeftComboBox.SelectedIndex + 1;
-                    StatusLabel.Text = $"ASIO — In {inIdx} → Out {outIdx}/{outIdx + 1}";
+                    StatusLabel.Text = $"ASIO — In {inIdx} > Out {outIdx}/{outIdx + 1}";
                 }
                 else
                     StatusLabel.Text = "WASAPI monitoring active";
@@ -340,7 +349,7 @@ namespace AudioBlocks.App
             int outOffset = AsioOutLeftComboBox.SelectedIndex >= 0 ? AsioOutLeftComboBox.SelectedIndex : 0;
             engine.SetAsioRouting(0, outOffset, 1, 2);
             engine.StartAsioTest(1000, 800f, 0.5f);
-            StatusLabel.Text = $"Test tone → Out {outOffset + 1} / Out {outOffset + 2}";
+            StatusLabel.Text = $"Test tone > Out {outOffset + 1} / Out {outOffset + 2}";
         }
 
         private void OpenAsioControlPanel()

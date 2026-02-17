@@ -17,37 +17,48 @@ namespace AudioBlocks.App.Effects
         /// <summary>Dry/wet mix</summary>
         public float Mix { get; set; } = 0.5f;
 
-        private readonly float[] delayBuf = new float[4800]; // ~100ms
+        // Buffer large enough for ~100ms at 96kHz
+        private readonly float[] delayBuf = new float[9600];
         private int writePos;
         private double lfoPhase;
+        private int sampleRate = 48000;
 
         public void Process(float[] buffer, int count)
         {
             double lfoFreq = 0.1 + Rate * 4.9;
-            float maxDelay = Depth * 400 + 10; // 10..410 samples
+            // Scale max delay with sample rate (~8ms max)
+            float maxDelay = Depth * (sampleRate * 0.008f) + (sampleRate * 0.0002f);
+
+            double phaseInc = 2.0 * Math.PI * lfoFreq / sampleRate;
 
             for (int i = 0; i < count; i++)
             {
-                // Write to circular buffer
                 delayBuf[writePos] = buffer[i];
 
-                // LFO modulates delay time
                 float lfo = (float)(0.5 + 0.5 * Math.Sin(lfoPhase));
-                lfoPhase += 2 * Math.PI * lfoFreq / 48000.0;
+                lfoPhase += phaseInc;
                 if (lfoPhase > 2 * Math.PI) lfoPhase -= 2 * Math.PI;
 
-                float delaySamples = 10 + lfo * maxDelay;
+                float delaySamples = (sampleRate * 0.0002f) + lfo * maxDelay;
 
-                // Fractional delay with linear interpolation
+                // Cubic interpolation for cleaner modulation
                 float readPosF = writePos - delaySamples;
                 if (readPosF < 0) readPosF += delayBuf.Length;
 
-                int idx0 = (int)readPosF;
-                int idx1 = (idx0 + 1) % delayBuf.Length;
-                float frac = readPosF - idx0;
-                idx0 %= delayBuf.Length;
+                int idx0 = ((int)readPosF - 1 + delayBuf.Length) % delayBuf.Length;
+                int idx1 = (int)readPosF % delayBuf.Length;
+                int idx2 = (idx1 + 1) % delayBuf.Length;
+                int idx3 = (idx1 + 2) % delayBuf.Length;
+                float frac = readPosF - (int)readPosF;
 
-                float delayed = delayBuf[idx0] * (1f - frac) + delayBuf[idx1] * frac;
+                // Hermite interpolation
+                float s0 = delayBuf[idx0], s1 = delayBuf[idx1];
+                float s2 = delayBuf[idx2], s3 = delayBuf[idx3];
+                float c0 = s1;
+                float c1 = 0.5f * (s2 - s0);
+                float c2 = s0 - 2.5f * s1 + 2f * s2 - 0.5f * s3;
+                float c3 = 0.5f * (s3 - s0) + 1.5f * (s1 - s2);
+                float delayed = ((c3 * frac + c2) * frac + c1) * frac + c0;
 
                 buffer[i] = buffer[i] * (1f - Mix) + delayed * Mix;
 
