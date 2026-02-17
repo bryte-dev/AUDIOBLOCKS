@@ -10,6 +10,6 @@ namespace AudioBlocks.App.Audio
     {
         string Name { get; }
         bool Enabled { get; set; }
-        void Process(float[] buffer);
+        void Process(float[] buffer, int count);
     }
 }

@@ -1,104 +1,148 @@
-﻿    <Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="500"
         x:Class="AudioBlocks.App.AudioSettingsWindow"
-        Title="Paramètres Audio">
+        Title="Audio Settings"
+        Width="680" Height="640"
+        Background="{StaticResource AppBg}"
+        WindowStartupLocation="CenterOwner">
 
-    <StackPanel Margin="15" Spacing="12">
+  <Window.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{StaticResource CardBg}"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="14"/>
+      <Setter Property="Margin" Value="0,4"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="Foreground" Value="{StaticResource MutedText}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="0,0,0,3"/>
+    </Style>
+  </Window.Styles>
 
-        <!-- Driver / Sample Rate -->
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto" Margin="0,0,0,10">
-            <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
-                <TextBlock Text="Driver audio :" FontWeight="Bold"/>
-                <ComboBox x:Name="DriverComboBox" SelectedIndex="0" Width="200">
-                    <ComboBoxItem Content="WASAPI Shared"/>
-                    <ComboBoxItem Content="WASAPI Exclusive"/>
-                    <ComboBoxItem Content="ASIO"/>
-                </ComboBox>
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="16" Spacing="10">
+      <TextBlock Text="Audio Settings" FontSize="18" FontWeight="Bold" Foreground="White"/>
 
-                <!-- ASIO drivers list (visible/enabled uniquement si ASIO sélectionné) -->
-                <TextBlock Text="ASIO driver :" FontWeight="Bold" Margin="0,8,0,0"/>
-                <ComboBox x:Name="AsioDriverComboBox" Width="200"/>
+      <!-- DRIVER + PARAMS -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="10">
 
-                <!-- Buttons ASIO: Control Panel + Test Routing -->
-                <StackPanel Orientation="Vertical" Spacing="6" Margin="0,8,0,0">
-                    <Button x:Name="OpenAsioControlPanelButton" Content="Open ASIO Control Panel" Width="200"/>
-                    <Button x:Name="TestRoutingButton" Content="Test routing" Width="200"/>
-                </StackPanel>
-            </StackPanel>
-
-            <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock Text="Sample Rate :" FontWeight="Bold"/>
-                <ComboBox x:Name="SampleRateComboBox" SelectedIndex="0" Width="160">
-                    <ComboBoxItem Content="44100"/>
-                    <ComboBoxItem Content="48000"/>
-                    <ComboBoxItem Content="96000"/>
-                </ComboBox>
-
-                <TextBlock x:Name="DriverNoteText" Text="" FontStyle="Italic" Margin="0,8,0,0" TextWrapping="Wrap"/>
-            </StackPanel>
-        </Grid>
-
-        <!-- Input / Output Devices -->
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto" Margin="0,0,0,10">
-            <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,8,0">
-                <TextBlock Text="Input Device :" FontWeight="Bold"/>
-                <ComboBox x:Name="InputDeviceComboBox" Width="220"/>
-            </StackPanel>
-
-            <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock Text="Output Device :" FontWeight="Bold"/>
-                <ComboBox x:Name="OutputDeviceComboBox" Width="220"/>
-            </StackPanel>
-        </Grid>
-
-        <!-- Buffer Size & Latency / CPU -->
-        <StackPanel Spacing="4" Margin="0,0,0,10">
-            <TextBlock Text="Buffer Size (samples) :" FontWeight="Bold"/>
-            <ComboBox x:Name="BufferSizeComboBox" SelectedIndex="2" Width="120">
-                <ComboBoxItem Content="64"/>
-                <ComboBoxItem Content="128"/>
-                <ComboBoxItem Content="256"/>
-                <ComboBoxItem Content="512"/>
+          <StackPanel Grid.Column="0" Grid.Row="0">
+            <TextBlock Classes="label" Text="Audio Driver"/>
+            <ComboBox x:Name="DriverComboBox" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="WASAPI Shared"/>
+              <ComboBoxItem Content="WASAPI Exclusive"/>
+              <ComboBoxItem Content="ASIO"/>
             </ComboBox>
+          </StackPanel>
 
-            <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,5,0,0">
-                <TextBlock x:Name="LatencyLabel" Text="~0 ms" FontStyle="Italic"/>
-                <TextBlock x:Name="CpuWarningLabel" Text="" Foreground="Red" FontWeight="Bold"/>
+          <StackPanel Grid.Column="1" Grid.Row="0">
+            <TextBlock Classes="label" Text="Sample Rate"/>
+            <ComboBox x:Name="SampleRateComboBox" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="44100"/>
+              <ComboBoxItem Content="48000"/>
+              <ComboBoxItem Content="96000"/>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Grid.Column="0" Grid.Row="1">
+            <TextBlock Classes="label" Text="ASIO Driver"/>
+            <ComboBox x:Name="AsioDriverComboBox" HorizontalAlignment="Stretch"/>
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Grid.Row="1">
+            <TextBlock Classes="label" Text="Buffer Size"/>
+            <ComboBox x:Name="BufferSizeComboBox" HorizontalAlignment="Stretch">
+              <ComboBoxItem Content="64"/>
+              <ComboBoxItem Content="128"/>
+              <ComboBoxItem Content="256"/>
+              <ComboBoxItem Content="512"/>
+            </ComboBox>
+          </StackPanel>
+
+          <StackPanel Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2">
+            <TextBlock x:Name="DriverNoteText" Foreground="{StaticResource DimText}" FontSize="11" FontStyle="Italic" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- WASAPI DEVICES -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="WASAPI Devices" FontWeight="SemiBold" Foreground="White"/>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel Grid.Column="0">
+              <TextBlock Classes="label" Text="Input Device"/>
+              <ComboBox x:Name="InputDeviceComboBox" HorizontalAlignment="Stretch"/>
             </StackPanel>
-        </StackPanel>
-
-        <!-- Sine Test Buttons -->
-        <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,10">
-            <Button x:Name="StartSineButton" Content="Start Sine" Width="160" Height="35"/>
-            <Button x:Name="StopSineButton" Content="Stop Sine" Width="160" Height="35"/>
-        </StackPanel>
-
-        <!-- VU-meter -->
-        <TextBlock Text="VU-meter :" FontWeight="Bold" Margin="0,5,0,2"/>
-        <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="25"/>
-
-        <!-- ASIO channel mapping (visible only when ASIO selected) -->
-        <StackPanel Spacing="6" Margin="0,6,0,6">
-            <TextBlock Text="ASIO Input Mapping (Main L / Main R)" FontWeight="Bold"/>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <ComboBox x:Name="AsioInLeftComboBox" Width="95"/>
-                <ComboBox x:Name="AsioInRightComboBox" Width="95"/>
+            <StackPanel Grid.Column="1">
+              <TextBlock Classes="label" Text="Output Device"/>
+              <ComboBox x:Name="OutputDeviceComboBox" HorizontalAlignment="Stretch"/>
             </StackPanel>
-
-            <TextBlock Text="ASIO Output Mapping (Main L / Main R)" FontWeight="Bold" Margin="0,6,0,0"/>
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <ComboBox x:Name="AsioOutLeftComboBox" Width="95"/>
-                <ComboBox x:Name="AsioOutRightComboBox" Width="95"/>
-            </StackPanel>
+          </Grid>
         </StackPanel>
+      </Border>
 
-        <!-- Apply Button -->
-        <Button x:Name="ApplyButton" Content="Apply" Width="100" Height="35" HorizontalAlignment="Left"/>
+      <!-- ASIO MAPPING -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Text="ASIO Channel Mapping" FontWeight="SemiBold" Foreground="White"/>
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Classes="label" Text="Input L / R"/>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ComboBox x:Name="AsioInLeftComboBox" Width="110"/>
+                <ComboBox x:Name="AsioInRightComboBox" Width="110"/>
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <TextBlock Classes="label" Text="Output L / R"/>
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <ComboBox x:Name="AsioOutLeftComboBox" Width="110"/>
+                <ComboBox x:Name="AsioOutRightComboBox" Width="110"/>
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+            <Button x:Name="OpenAsioControlPanelButton" Content="ASIO Control Panel" Height="30"/>
+            <Button x:Name="TestRoutingButton" Content="Test Routing" Height="30"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
 
-        <!-- Status Label -->
-        <TextBlock x:Name="StatusLabel" Text="" Foreground="DarkBlue" FontWeight="Bold" Margin="0,10,0,0" TextWrapping="Wrap"/>
+      <!-- METERS -->
+      <Border Classes="card">
+        <StackPanel Spacing="6">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Monitoring" FontWeight="SemiBold" Foreground="White"/>
+            <TextBlock x:Name="ProcessingLabel" Text="0.00 ms" Foreground="{StaticResource DimText}" FontSize="11" Grid.Column="1"/>
+          </Grid>
+          <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="18"/>
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <TextBlock x:Name="LatencyLabel" Text="—" Foreground="White" FontSize="12"/>
+            <TextBlock x:Name="CpuWarningLabel" Text="" Foreground="#FF6B6B" FontWeight="Bold" FontSize="12"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- ACTIONS -->
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button x:Name="ApplyButton" Content="Apply &amp; Start" Height="36" Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
+        <Button x:Name="StartSineButton" Content="Start Sine" Height="36"/>
+        <Button x:Name="StopSineButton" Content="Stop Sine" Height="36"/>
+      </StackPanel>
+
+      <!-- LOGS -->
+      <Border Classes="card">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Log" FontWeight="SemiBold" Foreground="White"/>
+          <TextBox x:Name="StatusLabel" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                   Height="120" Background="{StaticResource SurfaceBg}" Foreground="{StaticResource MutedText}" FontSize="11"/>
+        </StackPanel>
+      </Border>
+
     </StackPanel>
+  </ScrollViewer>
 </Window>

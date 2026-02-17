@@ -1,10 +1,20 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="AudioBlocks.App.App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>
+
+    <Application.Resources>
+        <SolidColorBrush x:Key="AppBg" Color="#0F1115"/>
+        <SolidColorBrush x:Key="PanelBg" Color="#1A1D23"/>
+        <SolidColorBrush x:Key="CardBg" Color="#22252B"/>
+        <SolidColorBrush x:Key="SurfaceBg" Color="#2A2D35"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF6B6B"/>
+        <SolidColorBrush x:Key="AccentCyan" Color="#4DD0E1"/>
+        <SolidColorBrush x:Key="MutedText" Color="#8A8F98"/>
+        <SolidColorBrush x:Key="DimText" Color="#5A5F68"/>
+    </Application.Resources>
 </Application>

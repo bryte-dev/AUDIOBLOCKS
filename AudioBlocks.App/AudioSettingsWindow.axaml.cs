@@ -1,5 +1,4 @@
-﻿using AudioBlocks.App;
-using AudioBlocks.App.Audio;
+﻿using AudioBlocks.App.Audio;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using NAudio.CoreAudioApi;
@@ -7,535 +6,351 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Reflection;
 
 namespace AudioBlocks.App
 {
     public partial class AudioSettingsWindow : Window
     {
-        private AudioEngine engine;
-        private DispatcherTimer vuTimer;
+        private readonly AudioEngine engine;
+        private readonly DispatcherTimer vuTimer;
 
-        // stocke seulement les IDs — on créera les MMDevice au besoin (évite de conserver des COM objects vivants)
         private string[] inputDeviceIds = Array.Empty<string>();
         private string[] outputDeviceIds = Array.Empty<string>();
-
-        // ASIO drivers & channel choices
         private string[] asioDriverNames = Array.Empty<string>();
-        private int asioInputCount = 0;
-        private int asioOutputCount = 0;
+        private int asioInputCount;
+        private int asioOutputCount;
 
         public AudioSettingsWindow(AudioEngine mainEngine)
         {
             InitializeComponent();
-
             engine = mainEngine;
-            engine.OnCpuOverloadChanged += CpuOverloadChanged;
-            engine.OnLog += (msg) =>
+
+            engine.OnCpuOverloadChanged += overload =>
+                Dispatcher.UIThread.Post(() => CpuWarningLabel.Text = overload ? "⚠ CPU overload!" : "");
+
+            engine.OnMonitoringChanged += _ =>
+                Dispatcher.UIThread.Post(SyncControlStates);
+
+            engine.OnLog += msg =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    const int MaxLen = 1000;
-                    string current = StatusLabel.Text ?? "";
-                    string next = current + (string.IsNullOrEmpty(current) ? "" : Environment.NewLine) + msg;
-                    if (next.Length > MaxLen)
-                        next = next.Substring(next.Length - MaxLen);
+                    string cur = StatusLabel.Text ?? "";
+                    string next = cur + (string.IsNullOrEmpty(cur) ? "" : Environment.NewLine) + msg;
+                    if (next.Length > 3000)
+                        next = next.Substring(next.Length - 3000);
                     StatusLabel.Text = next;
-                    // utile pour debug si tu lances depuis Visual Studio
-                    Console.WriteLine(msg);
+                    StatusLabel.CaretIndex = next.Length;
                 });
             };
 
-            // ===== Enumerate devices =====
-            var inputIds = new List<string>();
-            var outputIds = new List<string>();
+            EnumerateDevices();
+            SetInitialSelection();
+            PopulateAsioList();
+
+            AsioDriverComboBox.SelectionChanged += (_, _) =>
+            {
+                var name = GetSelectedAsioDriver();
+                if (!string.IsNullOrEmpty(name))
+                    ProbeAndFillAsioChannels(name);
+            };
+
+            DriverComboBox.SelectionChanged += (_, _) => SyncControlStates();
+
+            vuTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+            vuTimer.Tick += (_, _) =>
+            {
+                VuMeter.Value = engine.Level;
+                LatencyLabel.Text = $"Latency: {engine.CalculatedLatencyMs:F1} ms";
+                ProcessingLabel.Text = $"{engine.SmoothedProcessingMs:F2} ms";
+            };
+            vuTimer.Start();
+
+            ApplyButton.Click += (_, _) => ApplyAndStart();
+            StartSineButton.Click += (_, _) => { engine.StartAudio(); SyncControlStates(); };
+            StopSineButton.Click += (_, _) => { engine.StopAudio(); SyncControlStates(); };
+            OpenAsioControlPanelButton.Click += (_, _) => OpenAsioControlPanel();
+            TestRoutingButton.Click += (_, _) => TestRouting();
+
+            this.Closing += (_, _) => engine.StopAsioTest();
+            SyncControlStates();
+        }
+
+        private void EnumerateDevices()
+        {
+            var inIds = new List<string>();
+            var outIds = new List<string>();
 
             try
             {
-                var inputs = engine.GetInputDevices();
-                foreach (var dev in inputs)
+                foreach (var dev in engine.GetInputDevices())
                 {
-                    try
-                    {
-                        string name = dev.FriendlyName;
-                        InputDeviceComboBox.Items.Add(name);
-                    }
-                    catch (COMException)
-                    {
-                        InputDeviceComboBox.Items.Add("(unavailable)");
-                    }
-                    finally
-                    {
-                        inputIds.Add(dev.ID);
-                        dev.Dispose();
-                    }
+                    try { InputDeviceComboBox.Items.Add(dev.FriendlyName); }
+                    catch (COMException) { InputDeviceComboBox.Items.Add("(unavailable)"); }
+                    finally { inIds.Add(dev.ID); dev.Dispose(); }
                 }
-
-                var outputs = engine.GetOutputDevices();
-                foreach (var dev in outputs)
+                foreach (var dev in engine.GetOutputDevices())
                 {
-                    try
-                    {
-                        string name = dev.FriendlyName;
-                        OutputDeviceComboBox.Items.Add(name);
-                    }
-                    catch (COMException)
-                    {
-                        OutputDeviceComboBox.Items.Add("(unavailable)");
-                    }
-                    finally
-                    {
-                        outputIds.Add(dev.ID);
-                        dev.Dispose();
-                    }
+                    try { OutputDeviceComboBox.Items.Add(dev.FriendlyName); }
+                    catch (COMException) { OutputDeviceComboBox.Items.Add("(unavailable)"); }
+                    finally { outIds.Add(dev.ID); dev.Dispose(); }
                 }
             }
             catch (Exception ex)
             {
-                StatusLabel.Text = $"Error enumerating devices: {ex.Message}";
+                StatusLabel.Text = $"Device enumeration error: {ex.Message}";
             }
 
-            inputDeviceIds = inputIds.ToArray();
-            outputDeviceIds = outputIds.ToArray();
+            inputDeviceIds = inIds.ToArray();
+            outputDeviceIds = outIds.ToArray();
+        }
 
-            // ===== Sélection initiale avec comparaison ID =====
+        private void SetInitialSelection()
+        {
             if (engine.InputDevice != null)
             {
-                var idx = Array.IndexOf(inputDeviceIds, engine.InputDevice.ID);
-                if (idx >= 0)
-                    InputDeviceComboBox.SelectedIndex = idx;
+                int idx = Array.IndexOf(inputDeviceIds, engine.InputDevice.ID);
+                if (idx >= 0) InputDeviceComboBox.SelectedIndex = idx;
             }
             else if (InputDeviceComboBox.Items.Count > 0)
                 InputDeviceComboBox.SelectedIndex = 0;
 
             if (engine.OutputDevice != null)
             {
-                var idx = Array.IndexOf(outputDeviceIds, engine.OutputDevice.ID);
-                if (idx >= 0)
-                    OutputDeviceComboBox.SelectedIndex = idx;
+                int idx = Array.IndexOf(outputDeviceIds, engine.OutputDevice.ID);
+                if (idx >= 0) OutputDeviceComboBox.SelectedIndex = idx;
             }
             else if (OutputDeviceComboBox.Items.Count > 0)
                 OutputDeviceComboBox.SelectedIndex = 0;
 
-            // ===== Driver / SampleRate / BufferSize =====
             DriverComboBox.SelectedIndex = engine.Driver switch
             {
-                AudioDriver.WASAPI_Exclusive => 1,
-                AudioDriver.ASIO => 2,
-                _ => 0
+                AudioDriver.WASAPI_Exclusive => 1, AudioDriver.ASIO => 2, _ => 0
             };
-
             SampleRateComboBox.SelectedIndex = engine.SampleRate switch
             {
-                48000 => 1,
-                96000 => 2,
-                _ => 0
+                48000 => 1, 96000 => 2, _ => 0
             };
-
             BufferSizeComboBox.SelectedIndex = engine.BufferSize switch
             {
-                64 => 0,
-                128 => 1,
-                256 => 2,
-                512 => 3,
-                _ => 2
+                64 => 0, 128 => 1, 512 => 3, _ => 2
             };
-
-            // Populate ASIO drivers list
-            PopulateAsioList();
-
-            // Quand l'utilisateur change le driver ASIO, on détecte les canaux automatiquement
-            AsioDriverComboBox.SelectionChanged += (_, __) =>
-            {
-                var name = GetCurrentAsioDriverName();
-                if (!string.IsNullOrEmpty(name))
-                    AutoPopulateAsioChannels(name);
-            };
-
-            // Répondre aux changements de driver pour activer/désactiver les contrôles pertinents
-            DriverComboBox.SelectionChanged += (_, __) =>
-            {
-                UpdateDriverControls();
-                // UI simplifiée: masquer devices WASAPI si ASIO choisi
-                int idx = DriverComboBox.SelectedIndex;
-                bool isAsio = idx == 2;
-                InputDeviceComboBox.IsVisible = !isAsio;
-                OutputDeviceComboBox.IsVisible = !isAsio;
-            };
-
-            // Appliquer l'état initial des contrôles
-            UpdateDriverControls();
-
-            // ===== VU-meter =====
-            vuTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
-            vuTimer.Tick += (_, __) => UpdateVUMeter();
-            vuTimer.Start();
-
-            // ===== Buttons =====
-            StartSineButton.Click += (_, __) => StartSine();
-            StopSineButton.Click += (_, __) => StopSine();
-            ApplyButton.Click += (_, __) => ApplySettings();
-
-            // Nouveau : ouvre le panneau de contrôle ASIO du driver sélectionné
-            OpenAsioControlPanelButton.Click += (_, __) => OpenAsioControlPanel();
-
-            // Test routing button (joue court tone sur la paire de sorties ASIO choisie)
-            TestRoutingButton.Click += (_, __) => TestRouting();
-
-            // ===== Stop Sine à la fermeture =====
-            this.Closing += (_, __) =>
-            {
-                StopSine(); // monitoring principal reste actif
-            };
-        }
-
-        private void TestRouting()
-        {
-            // récupère la paire de sorties sélectionnée et lance le test
-            int outLeft = AsioOutLeftComboBox.SelectedIndex >= 0 ? AsioOutLeftComboBox.SelectedIndex : 0;
-            int outRight = AsioOutRightComboBox.SelectedIndex >= 0 ? AsioOutRightComboBox.SelectedIndex : outLeft;
-
-            // bouton test simple : 800 Hz pendant 800 ms
-            engine.StartAsioTest(new int[] { outLeft, outRight }, 800, 800f, 0.5f);
-
-            StatusLabel.Text = $"Test tone started on ASIO outputs Ch{outLeft + 1}/Ch{outRight + 1}";
         }
 
         private void PopulateAsioList()
         {
             try
             {
-                var list = AudioEngine.GetAsioDrivers();
-                asioDriverNames = list.ToArray();
-
+                asioDriverNames = AudioEngine.GetAsioDrivers().ToArray();
                 AsioDriverComboBox.Items.Clear();
-                foreach (var name in asioDriverNames)
-                    AsioDriverComboBox.Items.Add(name);
+                foreach (var n in asioDriverNames)
+                    AsioDriverComboBox.Items.Add(n);
 
-                if (AsioDriverComboBox.Items.Count > 0)
+                if (asioDriverNames.Length > 0)
                 {
                     AsioDriverComboBox.SelectedIndex = 0;
-                    // auto probe for the first driver
-                    AutoPopulateAsioChannels(asioDriverNames[0]);
+                    ProbeAndFillAsioChannels(asioDriverNames[0]);
                 }
             }
             catch (Exception ex)
             {
                 asioDriverNames = Array.Empty<string>();
-                AsioDriverComboBox.Items.Clear();
-                StatusLabel.Text = $"ASIO enumeration error: {ex.Message}";
+                StatusLabel.Text = $"ASIO enum error: {ex.Message}";
             }
         }
 
-        // Nouvelle méthode : détecte counts via AudioEngine.ProbeAsioChannels et remplit les combos selon counts
-        private void AutoPopulateAsioChannels(string driverName)
+        private void ProbeAndFillAsioChannels(string driverName)
         {
-            asioInputCount = 0;
-            asioOutputCount = 0;
-
             try
             {
                 var (inCnt, outCnt) = engine.ProbeAsioChannels(driverName);
-                asioInputCount = inCnt;
-                asioOutputCount = outCnt;
+                asioInputCount = inCnt > 0 ? inCnt : 2;
+                asioOutputCount = outCnt > 0 ? outCnt : 2;
             }
             catch
             {
-                asioInputCount = 0;
-                asioOutputCount = 0;
+                asioInputCount = 2;
+                asioOutputCount = 2;
             }
 
-            // fallback raisonnable si la detection a echoué
-            if (asioInputCount <= 0) asioInputCount = 8;
-            if (asioOutputCount <= 0) asioOutputCount = 8;
-
-            // remplit dynamiquement combos pour les canaux detectés
             AsioInLeftComboBox.Items.Clear();
             AsioInRightComboBox.Items.Clear();
             AsioOutLeftComboBox.Items.Clear();
             AsioOutRightComboBox.Items.Clear();
 
-            for (int i = 0; i < Math.Max(asioInputCount, asioOutputCount); i++)
+            for (int i = 0; i < asioInputCount; i++)
             {
-                string label = $"Ch {i + 1}";
-                if (i < asioInputCount)
-                {
-                    AsioInLeftComboBox.Items.Add(label);
-                    AsioInRightComboBox.Items.Add(label);
-                }
-                if (i < asioOutputCount)
-                {
-                    AsioOutLeftComboBox.Items.Add(label);
-                    AsioOutRightComboBox.Items.Add(label);
-                }
+                AsioInLeftComboBox.Items.Add($"In {i + 1}");
+                AsioInRightComboBox.Items.Add($"In {i + 1}");
+            }
+            for (int i = 0; i < asioOutputCount; i++)
+            {
+                AsioOutLeftComboBox.Items.Add($"Out {i + 1}");
+                AsioOutRightComboBox.Items.Add($"Out {i + 1}");
             }
 
-            // default : Main 1/2 -> on sélectionne 1 et 2 si disponibles, sinon première paire
-            if (AsioInLeftComboBox.Items.Count >= 2)
+            // Default input: In 1 (bass/instrument)
+            AsioInLeftComboBox.SelectedIndex = 0;
+            AsioInRightComboBox.SelectedIndex = AsioInRightComboBox.Items.Count >= 2 ? 1 : 0;
+
+            // Default output: Out 3/4 (DAW playback on MiniFuse = headphones)
+            // If driver has 4+ outputs, default to Out 3/4; otherwise Out 1/2
+            if (AsioOutLeftComboBox.Items.Count >= 4)
             {
-                AsioInLeftComboBox.SelectedIndex = 0;
-                AsioInRightComboBox.SelectedIndex = 1;
+                AsioOutLeftComboBox.SelectedIndex = 2;
+                AsioOutRightComboBox.SelectedIndex = 3;
             }
-            else if (AsioInLeftComboBox.Items.Count >= 1)
-            {
-                AsioInLeftComboBox.SelectedIndex = 0;
-                AsioInRightComboBox.SelectedIndex = 0;
-            }
-
-            if (AsioOutLeftComboBox.Items.Count >= 2)
-            {
-                AsioOutLeftComboBox.SelectedIndex = 0;
-                AsioOutRightComboBox.SelectedIndex = 1;
-            }
-            else if (AsioOutLeftComboBox.Items.Count >= 1)
-            {
-                AsioOutLeftComboBox.SelectedIndex = 0;
-                AsioOutRightComboBox.SelectedIndex = 0;
-            }
-
-            DriverNoteText.Text = $"ASIO driver '{driverName}' detected: {asioInputCount} in / {asioOutputCount} out. Default mapping set to Ch1/Ch2.";
-        }
-
-        private void UpdateDriverControls()
-        {
-            int idx = DriverComboBox.SelectedIndex;
-
-            bool isAsio = idx == 2;
-            bool isExclusive = idx == 1;
-
-            AsioDriverComboBox.IsEnabled = isAsio;
-            AsioDriverComboBox.IsVisible = isAsio;
-
-            // afficher/masquer mapping ASIO
-            AsioInLeftComboBox.IsEnabled = isAsio;
-            AsioInLeftComboBox.IsVisible = isAsio;
-            AsioInRightComboBox.IsEnabled = isAsio;
-            AsioInRightComboBox.IsVisible = isAsio;
-            AsioOutLeftComboBox.IsEnabled = isAsio;
-            AsioOutLeftComboBox.IsVisible = isAsio;
-            AsioOutRightComboBox.IsEnabled = isAsio;
-            AsioOutRightComboBox.IsVisible = isAsio;
-
-            InputDeviceComboBox.IsEnabled = !isAsio;
-            OutputDeviceComboBox.IsEnabled = !isAsio;
-
-            BufferSizeComboBox.IsEnabled = !isAsio;
-
-            if (isAsio)
-                DriverNoteText.Text = "ASIO sélectionné : choisis le driver ASIO (détection automatique des canaux).";
-            else if (isExclusive)
-                DriverNoteText.Text = "WASAPI Exclusive: le device sera ouvert en mode exclusif; sample rate doit correspondre.";
             else
-                DriverNoteText.Text = "WASAPI Shared: latence et mix gérés par le système.";
-        }
-
-        private void UpdateVUMeter()
-        {
-            try
             {
-                VuMeter.Value = engine.Level;
-                LatencyLabel.Text = $"{engine.CalculatedLatencyMs:F1} ms";
+                AsioOutLeftComboBox.SelectedIndex = 0;
+                AsioOutRightComboBox.SelectedIndex = AsioOutRightComboBox.Items.Count >= 2 ? 1 : 0;
             }
-            catch { }
+
+            DriverNoteText.Text = $"'{driverName}' — {asioInputCount} in / {asioOutputCount} out";
         }
 
-        private void CpuOverloadChanged(bool overload)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                CpuWarningLabel.Text = overload ? "⚠️ CPU too slow for current buffer!" : "";
-            });
-        }
-
-        private void StartSine()
-        {
-            engine.StartAudio();
-            StatusLabel.Text = "Sine started";
-        }
-
-        private void StopSine()
-        {
-            engine.StopAudio();
-            StatusLabel.Text = "Sine stopped";
-        }
-
-        private void ApplySettings()
-        {
-            try
-            {
-                var wasMonitoring = engine.IsMonitoring;
-
-                if (engine.IsMonitoring)
-                    engine.StopMonitoring();
-
-                // Driver
-                engine.Driver = DriverComboBox.SelectedIndex switch
-                {
-                    1 => AudioDriver.WASAPI_Exclusive,
-                    2 => AudioDriver.ASIO,
-                    _ => AudioDriver.WASAPI_Shared
-                };
-
-                // ASIO driver selection
-                if (engine.Driver == AudioDriver.ASIO)
-                {
-                    if (AsioDriverComboBox.SelectedIndex >= 0 && AsioDriverComboBox.SelectedIndex < asioDriverNames.Length)
-                    {
-                        engine.SetAsioDriver(asioDriverNames[AsioDriverComboBox.SelectedIndex]);
-                    }
-                    else
-                    {
-                        StatusLabel.Text = "No ASIO driver selected. Falling back to WASAPI Shared.";
-                        engine.Driver = AudioDriver.WASAPI_Shared;
-                    }
-                }
-
-                // SampleRate
-                engine.SampleRate = SampleRateComboBox.SelectedIndex switch
-                {
-                    1 => 48000,
-                    2 => 96000,
-                    _ => 44100
-                };
-
-                // BufferSize
-                engine.BufferSize = BufferSizeComboBox.SelectedIndex switch
-                {
-                    0 => 64,
-                    1 => 128,
-                    2 => 256,
-                    3 => 512,
-                    _ => 256
-                };
-
-                // Devices — pour WASAPI on recrée les MMDevice via l'ID
-                if (engine.Driver != AudioDriver.ASIO)
-                {
-                    var enumerator = new MMDeviceEnumerator();
-
-                    engine.InputDevice = InputDeviceComboBox.SelectedIndex >= 0 && InputDeviceComboBox.SelectedIndex < inputDeviceIds.Length
-                        ? enumerator.GetDevice(inputDeviceIds[InputDeviceComboBox.SelectedIndex])
-                        : null;
-
-                    engine.OutputDevice = OutputDeviceComboBox.SelectedIndex >= 0 && OutputDeviceComboBox.SelectedIndex < outputDeviceIds.Length
-                        ? enumerator.GetDevice(outputDeviceIds[OutputDeviceComboBox.SelectedIndex])
-                        : null;
-
-                    if (engine.InputDevice == null || engine.OutputDevice == null)
-                    {
-                        StatusLabel.Text = "Please select valid input and output devices for WASAPI.";
-                        return;
-                    }
-                }
-                else
-                {
-                    // ASIO: set channel mapping from UI selections, mais valide d'abord avec les counts détectés
-                    int inLeft = AsioInLeftComboBox.SelectedIndex >= 0 ? AsioInLeftComboBox.SelectedIndex : 0;
-                    int inRight = AsioInRightComboBox.SelectedIndex >= 0 ? AsioInRightComboBox.SelectedIndex : inLeft;
-                    int outLeft = AsioOutLeftComboBox.SelectedIndex >= 0 ? AsioOutLeftComboBox.SelectedIndex : 0;
-                    int outRight = AsioOutRightComboBox.SelectedIndex >= 0 ? AsioOutRightComboBox.SelectedIndex : outLeft;
-
-                    if (inLeft >= asioInputCount || inRight >= asioInputCount)
-                    {
-                        StatusLabel.Text = $"Invalid ASIO input mapping (driver has {asioInputCount} inputs).";
-                        return;
-                    }
-                    if (outLeft >= asioOutputCount || outRight >= asioOutputCount)
-                    {
-                        StatusLabel.Text = $"Invalid ASIO output mapping (driver has {asioOutputCount} outputs).";
-                        return;
-                    }
-
-                    // transmet au moteur (indices ASIO zero-based)
-                    engine.SetAsioChannels(new int[] { inLeft, inRight }, new int[] { outLeft, outRight });
-
-                    // pas d'MMDevice pour ASIO
-                    engine.InputDevice = null;
-                    engine.OutputDevice = null;
-                }
-
-                // Redémarre monitoring si les paramètres valides
-                if (engine.Driver == AudioDriver.ASIO)
-                {
-                    if (!string.IsNullOrEmpty(GetCurrentAsioDriverName()))
-                    {
-                        engine.StartMonitoring();
-                        StatusLabel.Text = "ASIO driver selected and monitoring started.";
-                    }
-                    else
-                    {
-                        StatusLabel.Text = "ASIO driver not set; no monitoring started.";
-                    }
-                }
-                else
-                {
-                    engine.StartMonitoring();
-                    StatusLabel.Text = "WASAPI settings applied and monitoring started.";
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusLabel.Text = $"Error applying settings: {ex.Message}";
-            }
-        }
-
-        private string? GetCurrentAsioDriverName()
+        private string? GetSelectedAsioDriver()
         {
             if (AsioDriverComboBox.SelectedIndex >= 0 && AsioDriverComboBox.SelectedIndex < asioDriverNames.Length)
                 return asioDriverNames[AsioDriverComboBox.SelectedIndex];
             return null;
         }
 
-        private void OpenAsioControlPanel()
+        private void SyncControlStates()
         {
-            var driver = GetCurrentAsioDriverName();
-            if (string.IsNullOrEmpty(driver))
+            bool isAsio = DriverComboBox.SelectedIndex == 2;
+            bool monitoring = engine.IsMonitoring;
+
+            AsioDriverComboBox.IsVisible = isAsio;
+            AsioInLeftComboBox.IsVisible = isAsio;
+            AsioInRightComboBox.IsVisible = isAsio;
+            AsioOutLeftComboBox.IsVisible = isAsio;
+            AsioOutRightComboBox.IsVisible = isAsio;
+            OpenAsioControlPanelButton.IsVisible = isAsio;
+            TestRoutingButton.IsVisible = isAsio;
+            InputDeviceComboBox.IsVisible = !isAsio;
+            OutputDeviceComboBox.IsVisible = !isAsio;
+
+            DriverComboBox.IsEnabled = !monitoring;
+            AsioDriverComboBox.IsEnabled = isAsio && !monitoring;
+            AsioInLeftComboBox.IsEnabled = isAsio && !monitoring;
+            AsioInRightComboBox.IsEnabled = isAsio && !monitoring;
+            AsioOutLeftComboBox.IsEnabled = isAsio && !monitoring;
+            AsioOutRightComboBox.IsEnabled = isAsio && !monitoring;
+            InputDeviceComboBox.IsEnabled = !isAsio && !monitoring;
+            OutputDeviceComboBox.IsEnabled = !isAsio && !monitoring;
+            SampleRateComboBox.IsEnabled = !monitoring;
+            BufferSizeComboBox.IsEnabled = !monitoring;
+            TestRoutingButton.IsEnabled = isAsio;
+            OpenAsioControlPanelButton.IsEnabled = isAsio;
+
+            ApplyButton.Content = monitoring ? "Stop" : "Apply \u0026 Start";
+
+            if (!isAsio)
             {
-                StatusLabel.Text = "No ASIO driver selected.";
+                DriverNoteText.Text = DriverComboBox.SelectedIndex == 1
+                    ? "WASAPI Exclusive — low latency, device locked"
+                    : "WASAPI Shared — system mixer, higher latency";
+            }
+        }
+
+        private void ApplyAndStart()
+        {
+            if (engine.IsMonitoring)
+            {
+                engine.StopMonitoring();
+                SyncControlStates();
                 return;
             }
 
             try
             {
-                // crée temporairement AsioOut pour appeler le control panel (beaucoup de builds NAudio exposent ShowControlPanel)
-                using var probe = new NAudio.Wave.AsioOut(driver);
-
-                // Cherche via reflection une méthode d'ouverture du panneau de contrôle
-                var show = probe.GetType().GetMethod("ShowControlPanel", BindingFlags.Instance | BindingFlags.Public);
-                if (show != null)
+                engine.Driver = DriverComboBox.SelectedIndex switch
                 {
-                    show.Invoke(probe, null);
+                    1 => AudioDriver.WASAPI_Exclusive, 2 => AudioDriver.ASIO, _ => AudioDriver.WASAPI_Shared
+                };
+
+                if (engine.Driver == AudioDriver.ASIO)
+                {
+                    var drvName = GetSelectedAsioDriver();
+                    if (string.IsNullOrEmpty(drvName))
+                    {
+                        StatusLabel.Text = "Select an ASIO driver first.";
+                        engine.Driver = AudioDriver.WASAPI_Shared;
+                        DriverComboBox.SelectedIndex = 0;
+                        SyncControlStates();
+                        return;
+                    }
+                    engine.SetAsioDriver(drvName);
+                }
+
+                engine.SampleRate = SampleRateComboBox.SelectedIndex switch { 1 => 48000, 2 => 96000, _ => 44100 };
+                engine.BufferSize = BufferSizeComboBox.SelectedIndex switch { 0 => 64, 1 => 128, 3 => 512, _ => 256 };
+
+                if (engine.Driver != AudioDriver.ASIO)
+                {
+                    var enumerator = new MMDeviceEnumerator();
+                    engine.InputDevice = InputDeviceComboBox.SelectedIndex >= 0 && InputDeviceComboBox.SelectedIndex < inputDeviceIds.Length
+                        ? enumerator.GetDevice(inputDeviceIds[InputDeviceComboBox.SelectedIndex]) : null;
+                    engine.OutputDevice = OutputDeviceComboBox.SelectedIndex >= 0 && OutputDeviceComboBox.SelectedIndex < outputDeviceIds.Length
+                        ? enumerator.GetDevice(outputDeviceIds[OutputDeviceComboBox.SelectedIndex]) : null;
+
+                    if (engine.InputDevice == null || engine.OutputDevice == null)
+                    {
+                        StatusLabel.Text = "Select valid WASAPI input and output devices.";
+                        return;
+                    }
                 }
                 else
                 {
-                    // Certains builds peuvent avoir un nom différent ; essayer une propriété ou méthode contenant "Control"
-                    var alt = probe.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                                .FirstOrDefault(m => m.Name.IndexOf("Control", StringComparison.OrdinalIgnoreCase) >= 0);
-                    if (alt != null)
-                    {
-                        // invocation si signature sans param
-                        if (alt.GetParameters().Length == 0)
-                            alt.Invoke(probe, null);
-                        else
-                            StatusLabel.Text = "ASIO control panel requires parameters not supported here.";
-                    }
-                    else
-                    {
-                        StatusLabel.Text = "ASIO control panel not available in this NAudio build.";
-                    }
+                    int inOffset = AsioInLeftComboBox.SelectedIndex >= 0 ? AsioInLeftComboBox.SelectedIndex : 0;
+                    int outOffset = AsioOutLeftComboBox.SelectedIndex >= 0 ? AsioOutLeftComboBox.SelectedIndex : 0;
+
+                    engine.SetAsioRouting(inOffset, outOffset, 1, 2);
+                    engine.InputDevice = null;
+                    engine.OutputDevice = null;
                 }
 
-                // Après ouverture/fermeture du panneau, reprobe les channels pour rafraîchir les combos
-                AutoPopulateAsioChannels(driver);
-            }
-            catch (TargetInvocationException tie)
-            {
-                StatusLabel.Text = $"ASIO control panel error: {tie.InnerException?.Message ?? tie.Message}";
+                engine.StartMonitoring();
+
+                if (engine.Driver == AudioDriver.ASIO)
+                {
+                    int inIdx = AsioInLeftComboBox.SelectedIndex + 1;
+                    int outIdx = AsioOutLeftComboBox.SelectedIndex + 1;
+                    StatusLabel.Text = $"ASIO — In {inIdx} → Out {outIdx}/{outIdx + 1}";
+                }
+                else
+                    StatusLabel.Text = "WASAPI monitoring active";
+
+                SyncControlStates();
             }
             catch (Exception ex)
             {
-                StatusLabel.Text = $"Cannot open ASIO control panel: {ex.Message}";
+                StatusLabel.Text = $"Error: {ex.Message}";
             }
+        }
+
+        private void TestRouting()
+        {
+            var drvName = GetSelectedAsioDriver();
+            if (string.IsNullOrEmpty(drvName)) { StatusLabel.Text = "Select an ASIO driver first."; return; }
+            if (engine.IsMonitoring) engine.StopMonitoring();
+
+            engine.SetAsioDriver(drvName);
+            int outOffset = AsioOutLeftComboBox.SelectedIndex >= 0 ? AsioOutLeftComboBox.SelectedIndex : 0;
+            engine.SetAsioRouting(0, outOffset, 1, 2);
+            engine.StartAsioTest(1000, 800f, 0.5f);
+            StatusLabel.Text = $"Test tone → Out {outOffset + 1} / Out {outOffset + 2}";
+        }
+
+        private void OpenAsioControlPanel()
+        {
+            var driver = GetSelectedAsioDriver();
+            if (string.IsNullOrEmpty(driver)) { StatusLabel.Text = "No ASIO driver selected."; return; }
+            engine.SetAsioDriver(driver);
+            if (!engine.ShowAsioControlPanel())
+                StatusLabel.Text = "ASIO panel not available. Use MiniFuse Control Center.";
+            ProbeAndFillAsioChannels(driver);
         }
     }
 }

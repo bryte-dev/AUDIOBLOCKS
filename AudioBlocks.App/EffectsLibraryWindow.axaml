@@ -1,25 +1,48 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AudioBlocks.App.EffectsLibraryWindow"
-        Width="350"
-        Height="450"
+        Width="400" Height="550"
         Title="Effects Library"
+        Background="#0F1115" Foreground="White"
         WindowStartupLocation="CenterOwner">
 
-    <StackPanel Margin="10" Spacing="10">
+  <Window.Styles>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#121417"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Padding" Value="12"/>
+      <Setter Property="Margin" Value="0,6"/>
+      <Setter Property="BorderBrush" Value="#252A31"/>
+    </Style>
+    <Style Selector="ListBox">
+      <Setter Property="Background" Value="#0A0C10"/>
+      <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#FF6B6B"/>
+      <Setter Property="Foreground" Value="White"/>
+    </Style>
+  </Window.Styles>
 
-        <TextBlock Text="Available Effects" FontWeight="Bold" FontSize="16"/>
+  <StackPanel Margin="15" Spacing="10">
+    <TextBlock Text="Effects Library" FontSize="20" FontWeight="Bold"/>
 
-        <ListBox x:Name="AvailableEffectsList" Height="120"/>
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Available Effects" Foreground="#9AA0A6" FontSize="12"/>
+        <ListBox x:Name="AvailableEffectsList" Height="150"/>
+        <Button x:Name="AddEffectButton" Content="Add to Chain" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+      </StackPanel>
+    </Border>
 
-        <Button x:Name="AddEffectButton" Content="Add Effect" Height="30"/>
-
-        <TextBlock Text="Current Effects" FontWeight="Bold" FontSize="16" Margin="0,10,0,0"/>
-
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Current Chain" Foreground="#9AA0A6" FontSize="12"/>
         <ListBox x:Name="CurrentEffectsList" Height="150"/>
+        <Button x:Name="RemoveEffectButton" Content="Remove Selected" Foreground="#FF6B6B" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+      </StackPanel>
+    </Border>
 
-        <Button x:Name="RemoveEffectButton" Content="Remove Selected Effect" Height="30"/>
-
-        <TextBlock x:Name="StatusLabel" Text="" Foreground="DarkBlue" FontWeight="Bold" TextWrapping="Wrap"/>
-    </StackPanel>
+    <TextBlock x:Name="StatusLabel" Text="" Foreground="#4DD0E1" HorizontalAlignment="Center" FontWeight="Bold"/>
+  </StackPanel>
 </Window>
