@@ -152,16 +152,19 @@
             </Grid>
 
             <!-- Drag & drop target zone -->
-            <Border x:Name="DropZone" MinHeight="40" CornerRadius="10" Padding="0" Background="Transparent"
+            <Border x:Name="DropZone" MinHeight="120" CornerRadius="10" Padding="0" Background="Transparent"
                     DragDrop.AllowDrop="True">
-              <StackPanel x:Name="EffectsPanel" Spacing="6"/>
-            </Border>
-
-            <Border x:Name="EmptyChainHint" Classes="card" IsVisible="True">
-              <StackPanel HorizontalAlignment="Center" Spacing="4">
-                <TextBlock Text="Drag effects here or use the library" Foreground="{DynamicResource DimText}" FontSize="12" HorizontalAlignment="Center"/>
-                <TextBlock Text="Drag to reorder" Foreground="{DynamicResource DimText}" FontSize="10" HorizontalAlignment="Center" FontStyle="Italic"/>
-              </StackPanel>
+              <Grid>
+                <StackPanel x:Name="EffectsPanel" Spacing="6"/>
+                <Border x:Name="EmptyChainHint" IsVisible="True" VerticalAlignment="Center"
+                        Background="{DynamicResource CardDefault}" CornerRadius="12" Padding="24,20" Opacity="0.8">
+                  <StackPanel HorizontalAlignment="Center" Spacing="8">
+                    <TextBlock Text="🧱" FontSize="28" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Build your signal chain" Foreground="{DynamicResource FgText}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Add effects from the library to start" Foreground="{DynamicResource DimText}" FontSize="11" HorizontalAlignment="Center"/>
+                  </StackPanel>
+                </Border>
+              </Grid>
             </Border>
 
             <Border Classes="card">
@@ -188,6 +191,8 @@
               <TextBlock Text="TONE" Foreground="{DynamicResource AccentCyan}" FontSize="10" FontWeight="Bold" Margin="0,6,0,0"/>
               <Button x:Name="AddEqBtn" Classes="lib-item" Content="EQ"/>
               <Button x:Name="AddDistortionBtn" Classes="lib-item" Content="Distortion"/>
+              <Button x:Name="AddFuzzBtn" Classes="lib-item" Content="Fuzz"/>
+              <Button x:Name="AddGraphicEqBtn" Classes="lib-item" Content="Graphic EQ (10-Band)"/>
               <TextBlock Text="TIME / MOD" Foreground="{DynamicResource AccentPurple}" FontSize="10" FontWeight="Bold" Margin="0,6,0,0"/>
               <Button x:Name="AddDelayBtn" Classes="lib-item" Content="Delay"/>
               <Button x:Name="AddReverbBtn" Classes="lib-item" Content="Reverb"/>

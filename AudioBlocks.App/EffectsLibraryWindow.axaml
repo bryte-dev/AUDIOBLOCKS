@@ -106,6 +106,13 @@
             <TextBlock Text="Chorus" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
           </StackPanel>
         </Border>
+        <Border Classes="fx-item" x:Name="DragGraphicEq" Tag="GraphicEQ">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
+                      Data="M3,17h2V7H3Zm4,0h2V10H7Zm4,0h2V3H11Zm4,0h2V13H15Zm4,0h2V7H19Z"/>
+            <TextBlock Text="Graphic EQ (10-Band)" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          </StackPanel>
+        </Border>
 
         <Separator Margin="0,8"/>
 

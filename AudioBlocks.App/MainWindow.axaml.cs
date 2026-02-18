@@ -132,6 +132,8 @@ namespace AudioBlocks.App
             AddDelayBtn.Click += (_, _) => AddEffect(new DelayEffect());
             AddReverbBtn.Click += (_, _) => AddEffect(new ReverbEffect());
             AddChorusBtn.Click += (_, _) => AddEffect(new ChorusEffect());
+            AddFuzzBtn.Click += (_, _) => AddEffect(new FuzzEffect());
+            AddGraphicEqBtn.Click += (_, _) => AddEffect(new GraphicEqEffect());
 
             PresetCleanBtn.Click += (_, _) => ApplyPreset(Preset.Clean);
             PresetCrunchBtn.Click += (_, _) => ApplyPreset(Preset.Crunch);
@@ -212,7 +214,26 @@ namespace AudioBlocks.App
 
         private (bool isReorder, bool isNewEffect, string? effectType, int fromIndex) ParseDragData(IDataObject data)
         {
+            // Try standard GetText first
             string? text = data.GetText();
+
+            // Fallback: scan all available formats for a string value
+            if (text == null)
+            {
+                foreach (var fmt in data.GetDataFormats())
+                {
+                    if (data.Get(fmt) is string s)
+                    {
+                        text = s;
+                        break;
+                    }
+                }
+            }
+
+            // Cross-window fallback: use the static pending state from EffectsLibraryWindow
+            if (text == null && EffectsLibraryWindow.PendingEffectType != null)
+                text = $"{DragPrefix}{EffectsLibraryWindow.PendingEffectType}";
+
             if (text == null) return (false, false, null, -1);
 
             if (text.StartsWith("AudioBlocks:Reorder:") &&
@@ -236,8 +257,11 @@ namespace AudioBlocks.App
             else
             {
                 e.DragEffects = DragDropEffects.None;
+                e.Handled = true;
                 return;
             }
+
+            e.Handled = true;
 
             var pos = e.GetPosition(EffectsPanel);
             int targetIdx = GetDropIndex(pos.Y);
@@ -247,11 +271,14 @@ namespace AudioBlocks.App
         private void OnDragLeave(object? sender, DragEventArgs e)
         {
             ClearDropHighlights();
+            e.Handled = true;
         }
 
         private void OnDrop(object? sender, DragEventArgs e)
         {
             ClearDropHighlights();
+            e.Handled = true;
+
             var pos = e.GetPosition(EffectsPanel);
             int toIdx = GetDropIndex(pos.Y);
 
@@ -282,50 +309,398 @@ namespace AudioBlocks.App
             }
         }
 
+        // =========================================================
+        // EFFECTS PANEL — AudioBlocks Identity
+        // =========================================================
+
+        /// <summary>Returns (accentColor, glowColor, categoryLabel) for the logo color scheme.</summary>
+        private static (string accent, string glow, string label) GetBlockCategory(IAudioEffect effect) => effect switch
+        {
+            GainEffect or CompressorEffect or NoiseGateEffect => ("#7CB342", "#337CB342", "DYNAMICS"),
+            EqEffect or DistortionEffect or FuzzEffect or GraphicEqEffect => ("#26C6DA", "#3326C6DA", "TONE"),
+            DelayEffect or ReverbEffect or ChorusEffect => ("#FFB300", "#33FFB300", "TIME"),
+            _ => ("#A0A6B0", "#33A0A6B0", "FX")
+        };
+
+        private IBrush GetThemeBrush(string key, string fallbackColor)
+        {
+            if (this.TryFindResource(key, ActualThemeVariant, out var resource) && resource is IBrush brush)
+            {
+                return brush;
+            }
+            return new SolidColorBrush(Color.Parse(fallbackColor));
+        }
+
+        private Control CreateFlowTerminal(string label, bool isInput)
+        {
+            var color = isInput ? "#7CB342" : "#FF6B6B";
+            var icon = isInput
+                ? "M12,1C7.03,1,3,5.03,3,10v4c0,1.66,1.34,3,3,3h1V10H5c0-3.87,3.13-7,7-7s7,3.13,7,7v7h-2V10h2v4c0,1.66-1.34,3-3,3h-1"
+                : "M14,3.23v2.06c2.89,.86,5,3.54,5,6.71s-2.11,5.85-5,6.71v2.06c4.01-.91,7-4.49,7-8.77s-2.99-7.86-7-8.77Zm-4,1.77H6C4.9,5,4,5.9,4,7v10c0,1.1,.9,2,2,2h4l5,5V0Z";
+
+            return new Border
+            {
+                Background = new SolidColorBrush(Color.Parse(color), 0.08),
+                BorderBrush = new SolidColorBrush(Color.Parse(color), 0.3),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(14, 6),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Child = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 6,
+                    Children =
+                    {
+                        new PathIcon { Data = Geometry.Parse(icon), Width = 12, Height = 12,
+                            Foreground = new SolidColorBrush(Color.Parse(color)) },
+                        new TextBlock { Text = label, FontSize = 11, FontWeight = FontWeight.Bold,
+                            Foreground = new SolidColorBrush(Color.Parse(color)),
+                            VerticalAlignment = VerticalAlignment.Center }
+                    }
+                }
+            };
+        }
+
+        private Control CreateSignalConnector()
+        {
+            var lineBrush = GetThemeBrush("SignalLine", "#2E3440");
+            var dotBrush = GetThemeBrush("SignalDot", "#4DD0E1");
+
+            var grid = new Grid
+            {
+                Height = 22,
+                Width = 20,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Tag = "connector"
+            };
+
+            grid.Children.Add(new Rectangle
+            {
+                Width = 2,
+                Fill = lineBrush,
+                HorizontalAlignment = HorizontalAlignment.Center
+            });
+
+            grid.Children.Add(new Ellipse
+            {
+                Width = 7, Height = 7,
+                Fill = dotBrush,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Tag = "signal-dot"
+            });
+
+            return grid;
+        }
+
+        private void UpdateSelectionVisuals()
+        {
+            foreach (var child in EffectsPanel.Children)
+            {
+                if (child is not Border b || b.Tag is not (int index, string catColor)) continue;
+                bool sel = index == selectedEffectIndex;
+                var catBrush = new SolidColorBrush(Color.Parse(catColor));
+
+                b.Background = GetThemeBrush(sel ? "CardSelected" : "CardDefault", sel ? "#2A3040" : "#1E2128");
+                b.BorderBrush = sel ? catBrush : null;
+                b.BorderThickness = new Thickness(sel ? 1.5 : 0);
+                b.BoxShadow = sel ? BoxShadows.Parse($"0 0 14 0 {catColor}55") : default;
+            }
+        }
+
+        private void UpdateEffectsPanel()
+        {
+            EffectsPanel.Children.Clear();
+            var all = engine.Effects.GetAllEffects();
+            EmptyChainHint.IsVisible = all.Count == 0;
+
+            if (all.Count == 0) return;
+
+            // ── INPUT terminal ──
+            EffectsPanel.Children.Add(CreateFlowTerminal("INPUT", true));
+            EffectsPanel.Children.Add(CreateSignalConnector());
+
+            for (int idx = 0; idx < all.Count; idx++)
+            {
+                var effect = all[idx];
+                int ci = idx;
+                bool sel = ci == selectedEffectIndex;
+                var (catColor, catGlow, catLabel) = GetBlockCategory(effect);
+                var catBrush = new SolidColorBrush(Color.Parse(catColor));
+
+                // ── BLOCK CARD ──
+                var card = new Border
+                {
+                    Background = GetThemeBrush(sel ? "CardSelected" : "CardDefault", sel ? "#2A3040" : "#1E2128"),
+                    CornerRadius = new CornerRadius(10),
+                    ClipToBounds = true,
+                    BorderBrush = sel ? catBrush : null,
+                    BorderThickness = new Thickness(sel ? 1.5 : 0),
+                    BoxShadow = sel ? BoxShadows.Parse($"0 0 14 0 {catColor}55") : default,
+                    Cursor = new Cursor(StandardCursorType.Hand),
+                    Tag = (ci, catColor) // Store index + category color
+                };
+
+                card.PointerPressed += (_, e) =>
+                {
+                    selectedEffectIndex = ci;
+                    UpdateSelectionVisuals();
+                    if (e.GetCurrentPoint(card).Properties.IsLeftButtonPressed)
+                        BeginPendingDrag(ci, e, card);
+                };
+                card.PointerMoved += (_, e) => TryStartDrag(e, card);
+                card.PointerReleased += (_, _) => CancelPendingDrag();
+
+                // Outer grid: [accent bar 4px] [content]
+                var blockGrid = new Grid { ColumnDefinitions = ColumnDefinitions.Parse("4,*") };
+
+                // Category accent bar (left stripe)
+                blockGrid.Children.Add(new Border
+                {
+                    Background = catBrush,
+                    CornerRadius = new CornerRadius(10, 0, 0, 10),
+                    [Grid.ColumnProperty] = 0
+                });
+
+                // Content panel
+                var content = new StackPanel
+                {
+                    Spacing = 8,
+                    Margin = new Thickness(10, 10, 12, 10),
+                    [Grid.ColumnProperty] = 1
+                };
+
+                // ── HEADER ──
+                var header = new Grid { ColumnDefinitions = ColumnDefinitions.Parse("Auto,Auto,Auto,*,Auto") };
+
+                // Drag handle
+                header.Children.Add(new PathIcon
+                {
+                    Width = 10, Height = 14,
+                    Foreground = GetThemeBrush("DimText", "#6B7280"),
+                    Data = Geometry.Parse("M4,2A2,2,0,1,1,2,4,2,2,0,0,1,4,2Zm6,0A2,2,0,1,1,8,4,2,2,0,0,1,10,2ZM4,8A2,2,0,1,1,2,10,2,2,0,0,1,4,8Zm6,0A2,2,0,1,1,8,10,2,2,0,0,1,10,8ZM4,14a2,2,0,1,1-2,2A2,2,0,0,1,4,14Zm6,0a2,2,0,1,1-2,2A2,2,0,0,1,10,14Z"),
+                    Cursor = new Cursor(StandardCursorType.DragMove),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    [Grid.ColumnProperty] = 0
+                });
+
+                // Checkbox
+                var chk = new CheckBox { IsChecked = effect.Enabled, [Grid.ColumnProperty] = 1 };
+                chk.IsCheckedChanged += (_, _) => effect.Enabled = chk.IsChecked == true;
+                header.Children.Add(chk);
+
+                // Category badge (colored dot + label)
+                var badge = new Border
+                {
+                    Background = new SolidColorBrush(Color.Parse(catColor), 0.15),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(6, 1),
+                    Margin = new Thickness(4, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    [Grid.ColumnProperty] = 2,
+                    Child = new TextBlock
+                    {
+                        Text = catLabel,
+                        FontSize = 9,
+                        FontWeight = FontWeight.Bold,
+                        Foreground = catBrush
+                    }
+                };
+                header.Children.Add(badge);
+
+                // Effect name
+                header.Children.Add(new TextBlock
+                {
+                    Text = $"{idx + 1}. {effect.Name}",
+                    Foreground = GetThemeBrush("FgText", "#F0F0F0"),
+                    FontWeight = FontWeight.SemiBold, FontSize = 14,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(8, 0, 0, 0),
+                    [Grid.ColumnProperty] = 3
+                });
+
+                // Remove button
+                var rm = new Button
+                {
+                    Content = "✕", FontSize = 10, Width = 26, Height = 26,
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    CornerRadius = new CornerRadius(6),
+                    [Grid.ColumnProperty] = 4
+                };
+                rm.Click += (_, _) =>
+                {
+                    engine.Effects.RemoveEffect(effect);
+                    if (selectedEffectIndex >= engine.Effects.Count) selectedEffectIndex = engine.Effects.Count - 1;
+                };
+                header.Children.Add(rm);
+                content.Children.Add(header);
+
+                // ── KNOBS ──
+                var knobs = new WrapPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+
+                if (effect is GainEffect g)
+                    knobs.Children.Add(MakeKnob("Boost", 0, 4, g.Gain, v => g.Gain = v, v => $"{(v <= 0 ? -96 : 20 * Math.Log10(v)):+0.0;-0.0}dB", catColor));
+                else if (effect is DistortionEffect d)
+                { knobs.Children.Add(MakeKnob("Drive", 0, 1, d.Drive, v => d.Drive = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Tone", 0, 1, d.Tone, v => d.Tone = v, v => $"{v * 100:0}%", "#FFB74D")); knobs.Children.Add(MakeKnob("Mix", 0, 1, d.Mix, v => d.Mix = v, v => $"{v * 100:0}%", "#81C784")); knobs.Children.Add(MakeKnob("Level", 0, 1, d.Level, v => d.Level = v, v => $"{v * 100:0}%", "#B388FF")); }
+                else if (effect is FuzzEffect fz)
+                { knobs.Children.Add(MakeKnob("Fuzz", 0, 1, fz.Fuzz, v => fz.Fuzz = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Tone", 0, 1, fz.Tone, v => fz.Tone = v, v => $"{v * 100:0}%", "#FFB74D")); knobs.Children.Add(MakeKnob("Gate", 0, 0.1, fz.Gate, v => fz.Gate = v, v => $"{v * 1000:0.0}", "#81C784")); knobs.Children.Add(MakeKnob("Level", 0, 1, fz.Level, v => fz.Level = v, v => $"{v * 100:0}%", "#B388FF")); knobs.Children.Add(MakeKnob("Mix", 0, 1, fz.Mix, v => fz.Mix = v, v => $"{v * 100:0}%", catColor)); }
+                else if (effect is ReverbEffect r)
+                { knobs.Children.Add(MakeKnob("Mix", 0, 1, r.Mix, v => r.Mix = v, v => $"{v * 100:0}%", catColor)); knobs.Children.Add(MakeKnob("Decay", 0, 1, r.Decay, v => r.Decay = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Damp", 0, 1, r.Damping, v => r.Damping = v, v => $"{v * 100:0}%", "#FFB74D")); }
+                else if (effect is CompressorEffect c)
+                { knobs.Children.Add(MakeKnob("Thresh", 0, 1, c.Threshold, v => c.Threshold = v, v => $"{(v <= 0.001 ? -60 : 20 * Math.Log10(v)):0.0}dB", "#FF6B6B")); knobs.Children.Add(MakeKnob("Ratio", 1, 20, c.Ratio, v => c.Ratio = v, v => $"{v:0.0}:1", catColor)); knobs.Children.Add(MakeKnob("Atk", 0, 1, c.Attack, v => c.Attack = v, v => $"{0.1 + v * 99.9:0.0}ms", "#81C784")); knobs.Children.Add(MakeKnob("Rel", 0, 1, c.Release, v => c.Release = v, v => $"{5 + v * 995:0}ms", "#FFB74D")); knobs.Children.Add(MakeKnob("Makeup", 0.5, 3, c.Makeup, v => c.Makeup = v, v => $"{(v <= 0 ? -96 : 20 * Math.Log10(v)):+0.0;-0.0}dB", "#B388FF")); }
+                else if (effect is NoiseGateEffect ng)
+                { knobs.Children.Add(MakeKnob("Thresh", 0, 0.2, ng.Threshold, v => ng.Threshold = v, v => $"{v * 100:0.0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Atk", 0, 1, ng.Attack, v => ng.Attack = v, v => $"{0.05 + v * 10:0.0}ms", "#81C784")); knobs.Children.Add(MakeKnob("Rel", 0, 1, ng.Release, v => ng.Release = v, v => $"{5 + v * 500:0}ms", "#FFB74D")); }
+                else if (effect is DelayEffect dl)
+                { knobs.Children.Add(MakeKnob("Time", 0, 1, dl.Time, v => dl.Time = v, v => $"{50 + v * 950:0}ms", catColor)); knobs.Children.Add(MakeKnob("FB", 0, 1, dl.Feedback, v => dl.Feedback = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Mix", 0, 1, dl.Mix, v => dl.Mix = v, v => $"{v * 100:0}%", "#81C784")); }
+                else if (effect is ChorusEffect ch)
+                { knobs.Children.Add(MakeKnob("Rate", 0, 1, ch.Rate, v => ch.Rate = v, v => $"{0.1 + v * 4.9:0.0}Hz", "#B388FF")); knobs.Children.Add(MakeKnob("Depth", 0, 1, ch.Depth, v => ch.Depth = v, v => $"{v * 100:0}%", catColor)); knobs.Children.Add(MakeKnob("Mix", 0, 1, ch.Mix, v => ch.Mix = v, v => $"{v * 100:0}%", "#81C784")); }
+                else if (effect is EqEffect eq)
+                { knobs.Children.Add(MakeKnob("Low", -1, 1, eq.Low, v => eq.Low = v, v => $"{v:+0.0;-0.0}", "#FF6B6B")); knobs.Children.Add(MakeKnob("Mid", -1, 1, eq.Mid, v => eq.Mid = v, v => $"{v:+0.0;-0.0}", "#FFB74D")); knobs.Children.Add(MakeKnob("High", -1, 1, eq.High, v => eq.High = v, v => $"{v:+0.0;-0.0}", catColor)); }
+                else if (effect is GraphicEqEffect geq)
+                {
+                    var eqControl = new Controls.GraphicEqControl
+                    {
+                        Height = 150,
+                        Effect = geq,
+                        Margin = new Thickness(0, 4)
+                    };
+                    eqControl.GainChanged += (band, db) => { };
+                    content.Children.Add(eqControl);
+                }
+
+                content.Children.Add(knobs);
+
+                // ── METERS ──
+                if (effect is NoiseGateEffect ngM)
+                {
+                    var bar = new ProgressBar { Minimum = 0, Maximum = 1, Height = 6, Margin = new Thickness(0, 2, 0, 0) };
+                    var lbl = new TextBlock { FontSize = 10, FontWeight = FontWeight.SemiBold, Foreground = GetThemeBrush("MutedText", "#A0A6B0") };
+                    content.Children.Add(bar); content.Children.Add(lbl);
+                    bar.Tag = ngM; lbl.Tag = ngM;
+                }
+                else if (effect is CompressorEffect cM)
+                {
+                    var lbl = new TextBlock { FontSize = 10, FontWeight = FontWeight.SemiBold, Foreground = GetThemeBrush("GrMeter", "#FF6B6B") };
+                    content.Children.Add(lbl); lbl.Tag = cM;
+                }
+                else if (effect is EqEffect eqM)
+                {
+                    var panel = new Grid { ColumnDefinitions = ColumnDefinitions.Parse("*,*,*"), Height = 20, Margin = new Thickness(0, 2, 0, 0) };
+                    var bL = new ProgressBar { Minimum = 0, Maximum = 0.5, Height = 6, Margin = new Thickness(1, 0), [Grid.ColumnProperty] = 0 };
+                    var bM = new ProgressBar { Minimum = 0, Maximum = 0.5, Height = 6, Margin = new Thickness(1, 0), [Grid.ColumnProperty] = 1 };
+                    var bH = new ProgressBar { Minimum = 0, Maximum = 0.5, Height = 6, Margin = new Thickness(1, 0), [Grid.ColumnProperty] = 2 };
+                    panel.Children.Add(bL); panel.Children.Add(bM); panel.Children.Add(bH);
+                    content.Children.Add(panel);
+                    bL.Tag = ("eq_low", eqM); bM.Tag = ("eq_mid", eqM); bH.Tag = ("eq_high", eqM);
+                }
+
+                blockGrid.Children.Add(content);
+                card.Child = blockGrid;
+                EffectsPanel.Children.Add(card);
+
+                // ── CONNECTOR between blocks ──
+                if (idx < all.Count - 1)
+                    EffectsPanel.Children.Add(CreateSignalConnector());
+            }
+
+            // ── OUTPUT terminal ──
+            EffectsPanel.Children.Add(CreateSignalConnector());
+            EffectsPanel.Children.Add(CreateFlowTerminal("OUTPUT", false));
+        }
+
+        private void UpdateEffectMeters()
+        {
+            foreach (var child in EffectsPanel.Children)
+            {
+                // Block cards have Tag = (int, string); navigate through Grid → StackPanel
+                if (child is not Border b || b.Tag is not (int, string)) continue;
+                if (b.Child is not Grid g) continue;
+                var sp = g.Children.OfType<StackPanel>().FirstOrDefault();
+                if (sp == null) continue;
+
+                foreach (var ctrl in sp.Children)
+                {
+                    if (ctrl is ProgressBar pb && pb.Tag is NoiseGateEffect ngm) pb.Value = ngm.CurrentGateGain;
+                    else if (ctrl is TextBlock tb && tb.Tag is NoiseGateEffect ngm2)
+                        tb.Text = ngm2.CurrentGateGain > 0.95f ? "OPEN" : ngm2.CurrentGateGain < 0.05f ? "CLOSED" : $"GR: {ngm2.GainReductionDb:0.0} dB";
+                    else if (ctrl is TextBlock tb2 && tb2.Tag is CompressorEffect cm)
+                        tb2.Text = cm.GainReductionDb < -0.1f ? $"GR: {cm.GainReductionDb:0.0} dB" : "--";
+                    else if (ctrl is Grid eg)
+                        foreach (var ec in eg.Children)
+                            if (ec is ProgressBar eb && eb.Tag is (string band, EqEffect eq))
+                                eb.Value = band switch { "eq_low" => eq.LowLevel, "eq_mid" => eq.MidLevel, "eq_high" => eq.HighLevel, _ => 0 };
+                }
+            }
+
+            // Pulse signal dots when monitoring
+            if (engine.IsMonitoring && engine.Level > 0.001f)
+            {
+                double pulse = 0.4 + 0.6 * Math.Abs(Math.Sin(Environment.TickCount64 / 300.0));
+                foreach (var child in EffectsPanel.Children)
+                    if (child is Grid cg && cg.Tag is "connector")
+                        foreach (var dot in cg.Children)
+                            if (dot is Ellipse e && e.Tag is "signal-dot")
+                                e.Opacity = pulse;
+            }
+            else
+            {
+                foreach (var child in EffectsPanel.Children)
+                    if (child is Grid cg && cg.Tag is "connector")
+                        foreach (var dot in cg.Children)
+                            if (dot is Ellipse e && e.Tag is "signal-dot")
+                                e.Opacity = 0.3;
+            }
+        }
+
+        // ── Drop index calculation (skip non-block children) ──
         private int GetDropIndex(double y)
         {
-            for (int i = 0; i < EffectsPanel.Children.Count; i++)
+            int blockIdx = 0;
+            foreach (var child in EffectsPanel.Children)
             {
-                var child = EffectsPanel.Children[i];
+                if (child.Tag is not (int, string)) continue;
                 double childMid = child.Bounds.Y + child.Bounds.Height / 2;
-                if (y < childMid) return i;
+                if (y < childMid) return blockIdx;
+                blockIdx++;
             }
-            return EffectsPanel.Children.Count;
+            return blockIdx;
         }
 
         private void HighlightDropTarget(int targetIdx, bool isInsert)
         {
-            for (int i = 0; i < EffectsPanel.Children.Count; i++)
+            int blockIdx = 0;
+            foreach (var child in EffectsPanel.Children)
             {
-                if (EffectsPanel.Children[i] is not Border b) continue;
+                if (child is not Border b || b.Tag is not (int index, string catColor)) continue;
 
-                if (i == targetIdx)
+                if (blockIdx == targetIdx)
                 {
-                    b.BorderBrush = GetThemeBrush(isInsert ? "AccentCyan" : "AccentBrush", "#4DD0E1");
+                    b.BorderBrush = new SolidColorBrush(Color.Parse(isInsert ? "#4DD0E1" : catColor));
                     b.BorderThickness = new Thickness(0, 2.5, 0, 0);
-                }
-                else if (targetIdx >= EffectsPanel.Children.Count && i == EffectsPanel.Children.Count - 1)
-                {
-                    b.BorderBrush = GetThemeBrush(isInsert ? "AccentCyan" : "AccentBrush", "#4DD0E1");
-                    b.BorderThickness = new Thickness(0, 0, 0, 2.5);
                 }
                 else
                 {
-                    bool sel = i == selectedEffectIndex;
-                    b.BorderBrush = sel ? GetThemeBrush("BorderSelected", "#FF6B6B") : null;
+                    bool sel = index == selectedEffectIndex;
+                    var selBrush = sel ? new SolidColorBrush(Color.Parse(catColor)) : null;
+                    b.BorderBrush = selBrush;
                     b.BorderThickness = new Thickness(sel ? 1.5 : 0);
                 }
+                blockIdx++;
             }
         }
 
         private void ClearDropHighlights()
         {
-            for (int i = 0; i < EffectsPanel.Children.Count; i++)
+            foreach (var child in EffectsPanel.Children)
             {
-                if (EffectsPanel.Children[i] is not Border b) continue;
-                bool sel = i == selectedEffectIndex;
-                b.BorderBrush = sel ? GetThemeBrush("BorderSelected", "#FF6B6B") : null;
+                if (child is not Border b || b.Tag is not (int index, string catColor)) continue;
+                bool sel = index == selectedEffectIndex;
+                var selBrush = sel ? new SolidColorBrush(Color.Parse(catColor)) : null;
+                b.BorderBrush = selBrush;
                 b.BorderThickness = new Thickness(sel ? 1.5 : 0);
+                b.BoxShadow = sel ? BoxShadows.Parse($"0 0 14 0 {catColor}55") : default;
             }
         }
 
@@ -462,178 +837,6 @@ namespace AudioBlocks.App
             StatusLabel.Text = $"Preset: {preset}";
         }
 
-        private IBrush GetThemeBrush(string key, string fallback)
-        {
-            if (this.TryFindResource(key, ActualThemeVariant, out var res) && res is IBrush brush)
-                return brush;
-            return new SolidColorBrush(Color.Parse(fallback));
-        }
-
-        // =========================================================
-        // EFFECTS PANEL
-        // =========================================================
-
-        private void UpdateSelectionVisuals()
-        {
-            for (int i = 0; i < EffectsPanel.Children.Count; i++)
-            {
-                if (EffectsPanel.Children[i] is not Border b) continue;
-                bool sel = i == selectedEffectIndex;
-                b.Background = GetThemeBrush(sel ? "CardSelected" : "CardDefault", sel ? "#2A3040" : "#22252B");
-                b.BorderBrush = sel ? GetThemeBrush("BorderSelected", "#FF6B6B") : null;
-                b.BorderThickness = new Thickness(sel ? 1.5 : 0);
-            }
-        }
-
-        private void UpdateEffectsPanel()
-        {
-            EffectsPanel.Children.Clear();
-            var all = engine.Effects.GetAllEffects();
-            EmptyChainHint.IsVisible = all.Count == 0;
-
-            for (int idx = 0; idx < all.Count; idx++)
-            {
-                var effect = all[idx];
-                int ci = idx;
-                bool sel = ci == selectedEffectIndex;
-
-                var card = new Border
-                {
-                    Background = GetThemeBrush(sel ? "CardSelected" : "CardDefault", sel ? "#2A3040" : "#22252B"),
-                    CornerRadius = new CornerRadius(10),
-                    Padding = new Thickness(14, 12),
-                    BorderBrush = sel ? GetThemeBrush("BorderSelected", "#FF6B6B") : null,
-                    BorderThickness = new Thickness(sel ? 1.5 : 0),
-                    Cursor = new Cursor(StandardCursorType.Hand),
-                    Margin = new Thickness(0, 1)
-                };
-
-                card.PointerPressed += (_, e) =>
-                {
-                    selectedEffectIndex = ci;
-                    UpdateSelectionVisuals();
-                    if (e.GetCurrentPoint(card).Properties.IsLeftButtonPressed)
-                        BeginPendingDrag(ci, e, card);
-                };
-                card.PointerMoved += (_, e) => TryStartDrag(e, card);
-                card.PointerReleased += (_, _) => CancelPendingDrag();
-
-                var content = new StackPanel { Spacing = 8 };
-
-                var header = new Grid { ColumnDefinitions = ColumnDefinitions.Parse("Auto,Auto,*,Auto") };
-
-                var dragHandle = new PathIcon
-                {
-                    Width = 10, Height = 14,
-                    Foreground = GetThemeBrush("DimText", "#6B7280"),
-                    Data = Geometry.Parse("M4,2A2,2,0,1,1,2,4,2,2,0,0,1,4,2Zm6,0A2,2,0,1,1,8,4,2,2,0,0,1,10,2ZM4,8A2,2,0,1,1,2,10,2,2,0,0,1,4,8Zm6,0A2,2,0,1,1,8,10,2,2,0,0,1,10,8ZM4,14a2,2,0,1,1-2,2A2,2,0,0,1,4,14Zm6,0a2,2,0,1,1-2,2A2,2,0,0,1,10,14Z"),
-                    Cursor = new Cursor(StandardCursorType.DragMove),
-                    Margin = new Thickness(0, 0, 6, 0),
-                    [Grid.ColumnProperty] = 0
-                };
-                header.Children.Add(dragHandle);
-
-                var chk = new CheckBox { IsChecked = effect.Enabled, [Grid.ColumnProperty] = 1 };
-                chk.IsCheckedChanged += (_, _) => effect.Enabled = chk.IsChecked == true;
-                header.Children.Add(chk);
-
-                header.Children.Add(new TextBlock
-                {
-                    Text = $"{idx + 1}. {effect.Name}",
-                    Foreground = GetThemeBrush("FgText", "#F0F0F0"),
-                    FontWeight = FontWeight.SemiBold, FontSize = 14,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(6, 0, 0, 0),
-                    [Grid.ColumnProperty] = 2
-                });
-
-                var rm = new Button
-                {
-                    Content = "X", FontSize = 10, Width = 26, Height = 26,
-                    HorizontalContentAlignment = HorizontalAlignment.Center,
-                    VerticalContentAlignment = VerticalAlignment.Center,
-                    CornerRadius = new CornerRadius(6),
-                    [Grid.ColumnProperty] = 3
-                };
-                rm.Click += (_, _) =>
-                {
-                    engine.Effects.RemoveEffect(effect);
-                    if (selectedEffectIndex >= engine.Effects.Count) selectedEffectIndex = engine.Effects.Count - 1;
-                };
-                header.Children.Add(rm);
-                content.Children.Add(header);
-
-                var knobs = new WrapPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-
-                if (effect is GainEffect g)
-                    knobs.Children.Add(MakeKnob("Boost", 0, 4, g.Gain, v => g.Gain = v, v => $"{(v <= 0 ? -96 : 20 * Math.Log10(v)):+0.0;-0.0}dB", "#4DD0E1"));
-                else if (effect is DistortionEffect d)
-                { knobs.Children.Add(MakeKnob("Drive", 0, 1, d.Drive, v => d.Drive = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Tone", 0, 1, d.Tone, v => d.Tone = v, v => $"{v * 100:0}%", "#FFB74D")); knobs.Children.Add(MakeKnob("Mix", 0, 1, d.Mix, v => d.Mix = v, v => $"{v * 100:0}%", "#81C784")); knobs.Children.Add(MakeKnob("Level", 0, 1, d.Level, v => d.Level = v, v => $"{v * 100:0}%", "#B388FF")); }
-                else if (effect is FuzzEffect fz)
-                { knobs.Children.Add(MakeKnob("Fuzz", 0, 1, fz.Fuzz, v => fz.Fuzz = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Tone", 0, 1, fz.Tone, v => fz.Tone = v, v => $"{v * 100:0}%", "#FFB74D")); knobs.Children.Add(MakeKnob("Gate", 0, 0.1, fz.Gate, v => fz.Gate = v, v => $"{v * 1000:0.0}", "#81C784")); knobs.Children.Add(MakeKnob("Level", 0, 1, fz.Level, v => fz.Level = v, v => $"{v * 100:0}%", "#B388FF")); knobs.Children.Add(MakeKnob("Mix", 0, 1, fz.Mix, v => fz.Mix = v, v => $"{v * 100:0}%", "#4DD0E1")); }
-                else if (effect is ReverbEffect r)
-                { knobs.Children.Add(MakeKnob("Mix", 0, 1, r.Mix, v => r.Mix = v, v => $"{v * 100:0}%", "#4DD0E1")); knobs.Children.Add(MakeKnob("Decay", 0, 1, r.Decay, v => r.Decay = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Damp", 0, 1, r.Damping, v => r.Damping = v, v => $"{v * 100:0}%", "#FFB74D")); }
-                else if (effect is CompressorEffect c)
-                { knobs.Children.Add(MakeKnob("Thresh", 0, 1, c.Threshold, v => c.Threshold = v, v => $"{(v <= 0.001 ? -60 : 20 * Math.Log10(v)):0.0}dB", "#FF6B6B")); knobs.Children.Add(MakeKnob("Ratio", 1, 20, c.Ratio, v => c.Ratio = v, v => $"{v:0.0}:1", "#4DD0E1")); knobs.Children.Add(MakeKnob("Atk", 0, 1, c.Attack, v => c.Attack = v, v => $"{0.1 + v * 99.9:0.0}ms", "#81C784")); knobs.Children.Add(MakeKnob("Rel", 0, 1, c.Release, v => c.Release = v, v => $"{5 + v * 995:0}ms", "#FFB74D")); knobs.Children.Add(MakeKnob("Makeup", 0.5, 3, c.Makeup, v => c.Makeup = v, v => $"{(v <= 0 ? -96 : 20 * Math.Log10(v)):+0.0;-0.0}dB", "#B388FF")); }
-                else if (effect is NoiseGateEffect ng)
-                { knobs.Children.Add(MakeKnob("Thresh", 0, 0.2, ng.Threshold, v => ng.Threshold = v, v => $"{v * 100:0.0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Atk", 0, 1, ng.Attack, v => ng.Attack = v, v => $"{0.05 + v * 10:0.0}ms", "#81C784")); knobs.Children.Add(MakeKnob("Rel", 0, 1, ng.Release, v => ng.Release = v, v => $"{5 + v * 500:0}ms", "#FFB74D")); }
-                else if (effect is DelayEffect dl)
-                { knobs.Children.Add(MakeKnob("Time", 0, 1, dl.Time, v => dl.Time = v, v => $"{50 + v * 950:0}ms", "#4DD0E1")); knobs.Children.Add(MakeKnob("FB", 0, 1, dl.Feedback, v => dl.Feedback = v, v => $"{v * 100:0}%", "#FF6B6B")); knobs.Children.Add(MakeKnob("Mix", 0, 1, dl.Mix, v => dl.Mix = v, v => $"{v * 100:0}%", "#81C784")); }
-                else if (effect is ChorusEffect ch)
-                { knobs.Children.Add(MakeKnob("Rate", 0, 1, ch.Rate, v => ch.Rate = v, v => $"{0.1 + v * 4.9:0.0}Hz", "#B388FF")); knobs.Children.Add(MakeKnob("Depth", 0, 1, ch.Depth, v => ch.Depth = v, v => $"{v * 100:0}%", "#4DD0E1")); knobs.Children.Add(MakeKnob("Mix", 0, 1, ch.Mix, v => ch.Mix = v, v => $"{v * 100:0}%", "#81C784")); }
-                else if (effect is EqEffect eq)
-                { knobs.Children.Add(MakeKnob("Low", -1, 1, eq.Low, v => eq.Low = v, v => $"{v:+0.0;-0.0}", "#FF6B6B")); knobs.Children.Add(MakeKnob("Mid", -1, 1, eq.Mid, v => eq.Mid = v, v => $"{v:+0.0;-0.0}", "#FFB74D")); knobs.Children.Add(MakeKnob("High", -1, 1, eq.High, v => eq.High = v, v => $"{v:+0.0;-0.0}", "#4DD0E1")); }
-
-                content.Children.Add(knobs);
-
-                if (effect is NoiseGateEffect ngM)
-                {
-                    var bar = new ProgressBar { Minimum = 0, Maximum = 1, Height = 6, Margin = new Thickness(0, 2, 0, 0) };
-                    var lbl = new TextBlock { FontSize = 10, FontWeight = FontWeight.SemiBold, Foreground = GetThemeBrush("MutedText", "#A0A6B0") };
-                    content.Children.Add(bar); content.Children.Add(lbl);
-                    bar.Tag = ngM; lbl.Tag = ngM;
-                }
-                else if (effect is CompressorEffect cM)
-                {
-                    var lbl = new TextBlock { FontSize = 10, FontWeight = FontWeight.SemiBold, Foreground = GetThemeBrush("GrMeter", "#FF6B6B") };
-                    content.Children.Add(lbl); lbl.Tag = cM;
-                }
-                else if (effect is EqEffect eqM)
-                {
-                    var panel = new Grid { ColumnDefinitions = ColumnDefinitions.Parse("*,*,*"), Height = 20, Margin = new Thickness(0, 2, 0, 0) };
-                    var bL = new ProgressBar { Minimum = 0, Maximum = 0.5, Height = 6, Margin = new Thickness(1, 0), [Grid.ColumnProperty] = 0 };
-                    var bM = new ProgressBar { Minimum = 0, Maximum = 0.5, Height = 6, Margin = new Thickness(1, 0), [Grid.ColumnProperty] = 1 };
-                    var bH = new ProgressBar { Minimum = 0, Maximum = 0.5, Height = 6, Margin = new Thickness(1, 0), [Grid.ColumnProperty] = 2 };
-                    panel.Children.Add(bL); panel.Children.Add(bM); panel.Children.Add(bH);
-                    content.Children.Add(panel);
-                    bL.Tag = ("eq_low", eqM); bM.Tag = ("eq_mid", eqM); bH.Tag = ("eq_high", eqM);
-                }
-
-                card.Child = content;
-                EffectsPanel.Children.Add(card);
-            }
-        }
-
-        private void UpdateEffectMeters()
-        {
-            foreach (var child in EffectsPanel.Children)
-            {
-                if (child is not Border b || b.Child is not StackPanel sp) continue;
-                foreach (var ctrl in sp.Children)
-                {
-                    if (ctrl is ProgressBar pb && pb.Tag is NoiseGateEffect ngm) pb.Value = ngm.CurrentGateGain;
-                    else if (ctrl is TextBlock tb && tb.Tag is NoiseGateEffect ngm2)
-                        tb.Text = ngm2.CurrentGateGain > 0.95f ? "OPEN" : ngm2.CurrentGateGain < 0.05f ? "CLOSED" : $"GR: {ngm2.GainReductionDb:0.0} dB";
-                    else if (ctrl is TextBlock tb2 && tb2.Tag is CompressorEffect cm)
-                        tb2.Text = cm.GainReductionDb < -0.1f ? $"GR: {cm.GainReductionDb:0.0} dB" : "--";
-                    else if (ctrl is Grid g)
-                        foreach (var ec in g.Children)
-                            if (ec is ProgressBar eb && eb.Tag is (string band, EqEffect eq))
-                                eb.Value = band switch { "eq_low" => eq.LowLevel, "eq_mid" => eq.MidLevel, "eq_high" => eq.HighLevel, _ => 0 };
-                }
-            }
-        }
-
         private static KnobControl MakeKnob(string label, double min, double max, double value, Action<float> onChange, Func<double, string> fmt, string color)
         {
             var k = new KnobControl { Width = 68, Height = 88, Minimum = min, Maximum = max, Value = value, Label = label, DisplayValue = fmt(value), KnobColor = new SolidColorBrush(Color.Parse(color)), Margin = new Thickness(4, 2) };
@@ -641,18 +844,9 @@ namespace AudioBlocks.App
             return k;
         }
 
-        protected override void OnClosing(WindowClosingEventArgs e)
-        {
-            base.OnClosing(e);
-            engine.Recorder.StopRecording();
-            engine.Recorder.StopPlayback();
-            engine.StopAsioTest();
-            engine.StopMonitoring();
-            settingsWindow?.Close();
-            settingsWindow = null;
-            libraryWindow?.Close();
-            libraryWindow = null;
-        }
+        // =========================================================
+        // TRANSPORT
+        // =========================================================
     }
 }
 

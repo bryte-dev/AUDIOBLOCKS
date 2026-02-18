@@ -31,10 +31,20 @@
                     <SolidColorBrush x:Key="GateClosed" Color="#FF6B6B"/>
                     <SolidColorBrush x:Key="GateOpen" Color="#66BB6A"/>
                     <SolidColorBrush x:Key="CardSelected" Color="#2A3040"/>
-                    <SolidColorBrush x:Key="CardDefault" Color="#22252B"/>
+                    <SolidColorBrush x:Key="CardDefault" Color="#1E2128"/>
                     <SolidColorBrush x:Key="BorderSelected" Color="#FF6B6B"/>
                     <SolidColorBrush x:Key="DropTarget" Color="#33FF6B6B"/>
                     <SolidColorBrush x:Key="DragGhost" Color="#AA22252B"/>
+
+                    <!-- AudioBlocks Brand (from logo) -->
+                    <SolidColorBrush x:Key="BlockGreen" Color="#7CB342"/>
+                    <SolidColorBrush x:Key="BlockCyan" Color="#26C6DA"/>
+                    <SolidColorBrush x:Key="BlockAmber" Color="#FFB300"/>
+                    <SolidColorBrush x:Key="BlockGreenGlow" Color="#337CB342"/>
+                    <SolidColorBrush x:Key="BlockCyanGlow" Color="#3326C6DA"/>
+                    <SolidColorBrush x:Key="BlockAmberGlow" Color="#33FFB300"/>
+                    <SolidColorBrush x:Key="SignalLine" Color="#2E3440"/>
+                    <SolidColorBrush x:Key="SignalDot" Color="#4DD0E1"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="AppBg" Color="#F5F5F7"/>
@@ -61,6 +71,16 @@
                     <SolidColorBrush x:Key="BorderSelected" Color="#C62828"/>
                     <SolidColorBrush x:Key="DropTarget" Color="#33C62828"/>
                     <SolidColorBrush x:Key="DragGhost" Color="#AAFFFFFF"/>
+
+                    <!-- AudioBlocks Brand (light) -->
+                    <SolidColorBrush x:Key="BlockGreen" Color="#558B2F"/>
+                    <SolidColorBrush x:Key="BlockCyan" Color="#00838F"/>
+                    <SolidColorBrush x:Key="BlockAmber" Color="#FF8F00"/>
+                    <SolidColorBrush x:Key="BlockGreenGlow" Color="#33558B2F"/>
+                    <SolidColorBrush x:Key="BlockCyanGlow" Color="#3300838F"/>
+                    <SolidColorBrush x:Key="BlockAmberGlow" Color="#33FF8F00"/>
+                    <SolidColorBrush x:Key="SignalLine" Color="#D0D4DC"/>
+                    <SolidColorBrush x:Key="SignalDot" Color="#00838F"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>

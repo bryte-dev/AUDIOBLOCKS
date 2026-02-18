@@ -4,6 +4,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using System;
+using System.Runtime.InteropServices;
+
+#pragma warning disable CS0618 // DataObject/DataFormats.Text/DragDrop.DoDragDrop — still functional in Avalonia 11.x
 
 namespace AudioBlocks.App
 {
@@ -24,6 +27,7 @@ namespace AudioBlocks.App
             ("Reverb",     () => new ReverbEffect()),
             ("Chorus",     () => new ChorusEffect()),
             ("Fuzz",       () => new FuzzEffect()),
+            ("GraphicEQ",  () => new GraphicEqEffect()),
         ];
 
         public EffectsLibraryWindow(AudioEngine engine)
@@ -40,11 +44,54 @@ namespace AudioBlocks.App
             SetupDragItem(DragReverb);
             SetupDragItem(DragChorus);
             SetupDragItem(DragFuzz);
+            SetupDragItem(DragGraphicEq);
 
             PresetClean.PointerPressed += (_, _) => ApplyPreset("Clean");
             PresetCrunch.PointerPressed += (_, _) => ApplyPreset("Crunch");
             PresetLead.PointerPressed += (_, _) => ApplyPreset("Lead");
             PresetAmbient.PointerPressed += (_, _) => ApplyPreset("Ambient");
+        }
+
+        // =============================================================
+        // Win32 fallback for cross-window DnD (Windows OLE DnD is broken
+        // with the deprecated Avalonia DataObject API)
+        // =============================================================
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT { public int X, Y; }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        /// <summary>
+        /// After a failed DnD, check if the cursor ended up over the MainWindow
+        /// and drop the effect directly.
+        /// </summary>
+        private bool TryCrossWindowFallback(string effectType)
+        {
+            if (!OperatingSystem.IsWindows()) return false;
+            if (Owner is not MainWindow mainWindow) return false;
+            if (!GetCursorPos(out var cursor)) return false;
+
+            try
+            {
+                var screenPos = new PixelPoint(cursor.X, cursor.Y);
+                var clientPos = mainWindow.PointToClient(screenPos);
+
+                // Check if cursor is within MainWindow client area
+                if (clientPos.X < 0 || clientPos.Y < 0 ||
+                    clientPos.X > mainWindow.ClientSize.Width ||
+                    clientPos.Y > mainWindow.ClientSize.Height)
+                    return false;
+
+                var fx = CreateEffect(effectType);
+                if (fx == null) return false;
+
+                engine.Effects.AddEffect(fx);
+                StatusLabel.Text = $"{fx.Name} added";
+                return true;
+            }
+            catch { return false; }
         }
 
         private void SetupDragItem(Border item)
@@ -76,11 +123,14 @@ namespace AudioBlocks.App
 
                     PendingEffectType = effectType;
 
-                    // Use new API: DataTransfer + DataFormat.Text + DoDragDropAsync
-                    var data = new DataTransfer();
-                    data.Set(DataFormat.Text, $"AudioBlocks:Effect:{effectType}");
+                    var data = new DataObject();
+                    data.Set(DataFormats.Text, $"AudioBlocks:Effect:{effectType}");
 
-                    var result = await DragDrop.DoDragDropAsync(e, data, DragDropEffects.Copy);
+                    var result = await DragDrop.DoDragDrop(e, data, DragDropEffects.Copy);
+
+                    // Cross-window DnD fails on Windows — fallback via cursor position
+                    if (result == DragDropEffects.None && PendingEffectType != null)
+                        TryCrossWindowFallback(effectType);
 
                     PendingEffectType = null;
                 }
@@ -116,6 +166,7 @@ namespace AudioBlocks.App
                 "Reverb" => new ReverbEffect(),
                 "Chorus" => new ChorusEffect(),
                 "Fuzz" => new FuzzEffect(),
+                "GraphicEQ" => new GraphicEqEffect(),
                 _ => null
             };
         }
@@ -157,3 +208,5 @@ namespace AudioBlocks.App
         }
     }
 }
+
+#pragma warning restore CS0618
