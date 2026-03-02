@@ -25,6 +25,9 @@ namespace AudioBlocks.App.Effects
         private float lp1, lp2;
         private float hp1, hp2;
         private int sampleRate = 48000;
+
+        public void SetSampleRate(int sr) => sampleRate = sr;
+
         private float lastLpCoeff = -1f;
 
         // Band RMS levels for UI metering

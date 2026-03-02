@@ -41,6 +41,9 @@ namespace AudioBlocks.App.Effects
 
         private int lastSampleRate;
         private readonly float[] lastGains = new float[BandCount];
+        private int sampleRate = 48000;
+
+        public void SetSampleRate(int sr) => sampleRate = sr;
 
         public GraphicEqEffect()
         {
@@ -94,7 +97,7 @@ namespace AudioBlocks.App.Effects
         {
             if (!Enabled) return;
 
-            UpdateCoefficients(48000);
+            UpdateCoefficients(sampleRate);
 
             // Reset peak levels
             for (int i = 0; i < BandCount; i++) Levels[i] = 0f;

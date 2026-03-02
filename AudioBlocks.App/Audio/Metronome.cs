@@ -10,7 +10,7 @@ namespace AudioBlocks.App.Audio
     public class Metronome
     {
         private volatile bool enabled;
-        private volatile int bpm = 120;
+        private double bpm = 120;
         private volatile float volume = 0.5f;
         private int sampleRate = 48000;
         private int beatsPerBar = 4;
@@ -21,8 +21,8 @@ namespace AudioBlocks.App.Audio
 
         // Click synthesis
         private int clickDurationSamples = 800;
-        private const float DownbeatFreq = 1800f;
-        private const float BeatFreq = 1200f;
+        private const float DownbeatFreq = 2400f;
+        private const float BeatFreq = 1600f;
         private const float BaseAmplitude = 0.7f;
 
         // State
@@ -31,7 +31,7 @@ namespace AudioBlocks.App.Audio
         private double clickPhase;
 
         public bool Enabled { get => enabled; set => enabled = value; }
-        public int BPM { get => bpm; set => bpm = Math.Clamp(value, 30, 300); }
+        public double BPM { get => bpm; set => bpm = Math.Clamp(Math.Round(value, 3), 10, 999); }
         public int BeatsPerBar { get => beatsPerBar; set => beatsPerBar = Math.Clamp(value, 1, 16); }
         public int CurrentBeat => currentBeat + 1;
 
@@ -43,8 +43,8 @@ namespace AudioBlocks.App.Audio
         public void SetSampleRate(int sr)
         {
             sampleRate = sr > 0 ? sr : 48000;
-            // Scale click duration to ~16ms regardless of sample rate
-            clickDurationSamples = Math.Max(200, (int)(sampleRate * 0.016));
+            // Scale click duration to ~10ms regardless of sample rate
+            clickDurationSamples = Math.Max(200, (int)(sampleRate * 0.010));
         }
 
         public void Reset()
@@ -99,7 +99,7 @@ namespace AudioBlocks.App.Audio
                     if (clickRemaining > clickDur - (int)attackSamples)
                         envelope = 1f - (float)(clickDur - clickRemaining) / attackSamples; // ramp up
                     else
-                        envelope = MathF.Exp(-t * 5f); // exponential decay
+                        envelope = MathF.Exp(-t * 8f); // fast exponential decay
 
                     // Add slight harmonic content for downbeat
                     float click;

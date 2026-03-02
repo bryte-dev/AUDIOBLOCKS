@@ -24,6 +24,9 @@ namespace AudioBlocks.App.Effects
         // Anti-aliasing filter states (simple 2x oversample)
         private float upFilterState;
         private float downFilterState;
+        private int sampleRate = 48000;
+
+        public void SetSampleRate(int sr) => sampleRate = sr;
 
         public void Process(float[] buffer, int count)
         {
@@ -34,7 +37,7 @@ namespace AudioBlocks.App.Effects
             // Tone filter: map 0..1 to cutoff coefficient
             // 0 = very dark (~500Hz), 1 = wide open
             float toneFreq = 500f + Tone * 15000f;
-            float toneCoeff = 1f - MathF.Exp(-2f * MathF.PI * toneFreq / 48000f);
+            float toneCoeff = 1f - MathF.Exp(-2f * MathF.PI * toneFreq / sampleRate);
 
             for (int i = 0; i < count; i++)
             {

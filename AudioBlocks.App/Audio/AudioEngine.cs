@@ -174,6 +174,7 @@ namespace AudioBlocks.App.Audio
             try
             {
                 Metronome.SetSampleRate(SampleRate);
+                Effects.SampleRate = SampleRate;
                 Metronome.Reset();
                 if (Driver == AudioDriver.ASIO) StartAsio(); else StartWasapi();
                 IsMonitoring = true;
@@ -212,7 +213,7 @@ namespace AudioBlocks.App.Audio
             capture = new WasapiCapture(InputDevice) { ShareMode = shareMode };
             wasapiFormat = capture.WaveFormat;
             OnLog?.Invoke($"WASAPI: {wasapiFormat.Encoding} {wasapiFormat.SampleRate}Hz {wasapiFormat.BitsPerSample}bit x{wasapiFormat.Channels}");
-            if (wasapiFormat.SampleRate != SampleRate) { OnLog?.Invoke($"Using device rate {wasapiFormat.SampleRate}Hz"); SampleRate = wasapiFormat.SampleRate; }
+            if (wasapiFormat.SampleRate != SampleRate) { OnLog?.Invoke($"Using device rate {wasapiFormat.SampleRate}Hz"); SampleRate = wasapiFormat.SampleRate; Effects.SampleRate = SampleRate; }
             capture.DataAvailable += OnWasapiData;
             buffer = new BufferedWaveProvider(wasapiFormat) { BufferLength = BufferSize * wasapiFormat.BlockAlign * 10, DiscardOnBufferOverflow = true };
             int latencyMs = Math.Max(1, (int)((double)BufferSize / SampleRate * 1000));

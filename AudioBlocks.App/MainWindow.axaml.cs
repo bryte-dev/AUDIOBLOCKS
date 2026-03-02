@@ -140,6 +140,42 @@ namespace AudioBlocks.App
             PresetLeadBtn.Click += (_, _) => ApplyPreset(Preset.Lead);
             PresetAmbientBtn.Click += (_, _) => ApplyPreset(Preset.Ambient);
 
+            SavePresetDockBtn.Click += (_, _) => { SaveDockPanel.IsVisible = true; PresetNameDockBox.Text = ""; PresetNameDockBox.Focus(); };
+            SaveConfirmDockBtn.Click += (_, _) => SaveDockedPreset();
+            PresetNameDockBox.KeyDown += (_, e) => { if (e.Key == Key.Enter) SaveDockedPreset(); };
+            RefreshDockedUserPresets();
+
+            ExportPresetDockBtn.Click += async (_, _) =>
+            {
+                var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Export Preset",
+                    DefaultExtension = "json",
+                    FileTypeChoices = new[] { new FilePickerFileType("AudioBlocks Preset") { Patterns = new[] { "*.json" } } },
+                    SuggestedFileName = "MyPreset"
+                });
+                if (file == null) return;
+                var preset = PresetManager.CapturePreset(System.IO.Path.GetFileNameWithoutExtension(file.Name ?? "Preset"), engine.Effects);
+                PresetManager.SaveToPath(preset, file.Path.LocalPath);
+                StatusLabel.Text = $"Exported: {file.Name}";
+            };
+            ImportPresetDockBtn.Click += async (_, _) =>
+            {
+                var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Import Preset",
+                    FileTypeFilter = new[] { new FilePickerFileType("AudioBlocks Preset") { Patterns = new[] { "*.json" } } },
+                    AllowMultiple = false
+                });
+                if (files.Count == 0) return;
+                var preset = PresetManager.LoadFromPath(files[0].Path.LocalPath);
+                if (preset != null)
+                {
+                    PresetManager.ApplyPreset(preset, engine.Effects);
+                    StatusLabel.Text = $"Imported: {preset.Name}";
+                }
+            };
+
             MoveUpButton.Click += (_, _) => { if (selectedEffectIndex > 0) { engine.Effects.MoveEffect(selectedEffectIndex, selectedEffectIndex - 1); selectedEffectIndex--; } };
             MoveDownButton.Click += (_, _) => { if (selectedEffectIndex >= 0 && selectedEffectIndex < engine.Effects.Count - 1) { engine.Effects.MoveEffect(selectedEffectIndex, selectedEffectIndex + 1); selectedEffectIndex++; } };
             RebuildGraphButton.Click += (_, _) => { engine.RebuildAudioGraph(); StatusLabel.Text = "Graph rebuilt"; };
@@ -152,10 +188,28 @@ namespace AudioBlocks.App
             MetronomeToggle.IsCheckedChanged += (_, _) =>
             {
                 engine.Metronome.Enabled = MetronomeToggle.IsChecked == true;
-                StatusLabel.Text = engine.Metronome.Enabled ? $"Metronome ON -- {engine.Metronome.BPM} BPM" : "Metronome OFF";
+                StatusLabel.Text = engine.Metronome.Enabled ? $"Metronome ON -- {engine.Metronome.BPM:0.###} BPM" : "Metronome OFF";
             };
-            BpmDownButton.Click += (_, _) => { engine.Metronome.BPM -= 5; BpmLabel.Text = $"{engine.Metronome.BPM}"; };
-            BpmUpButton.Click += (_, _) => { engine.Metronome.BPM += 5; BpmLabel.Text = $"{engine.Metronome.BPM}"; };
+            BpmDownButton.Click += (_, _) => { engine.Metronome.BPM -= 1; BpmBox.Text = engine.Metronome.BPM.ToString("0.###"); };
+            BpmUpButton.Click += (_, _) => { engine.Metronome.BPM += 1; BpmBox.Text = engine.Metronome.BPM.ToString("0.###"); };
+            BpmBox.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    if (double.TryParse(BpmBox.Text, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out double val))
+                        engine.Metronome.BPM = val;
+                    BpmBox.Text = engine.Metronome.BPM.ToString("0.###");
+                }
+            };
+            BpmBox.LostFocus += (_, _) =>
+            {
+                if (double.TryParse(BpmBox.Text, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double val))
+                    engine.Metronome.BPM = val;
+                BpmBox.Text = engine.Metronome.BPM.ToString("0.###");
+            };
+            BpmBox.GotFocus += (_, _) => BpmBox.SelectAll();
 
             engine.Metronome.OnBeat += beat => Dispatcher.UIThread.Post(() =>
                 BeatIndicator.Text = $"{beat}/{engine.Metronome.BeatsPerBar}");
@@ -835,6 +889,70 @@ namespace AudioBlocks.App
                     break;
             }
             StatusLabel.Text = $"Preset: {preset}";
+            RefreshDockedUserPresets();
+        }
+
+        private void SaveDockedPreset()
+        {
+            var name = PresetNameDockBox.Text?.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+            PresetManager.Save(PresetManager.CapturePreset(name, engine.Effects));
+            SaveDockPanel.IsVisible = false;
+            StatusLabel.Text = $"Saved: {name}";
+            RefreshDockedUserPresets();
+        }
+
+        private void RefreshDockedUserPresets()
+        {
+            UserPresetsDockPanel.Children.Clear();
+            foreach (var name in PresetManager.GetAll())
+            {
+                var presetName = name;
+                var grid = new Grid { Margin = new Thickness(0, 1) };
+                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+
+                var loadBtn = new Button
+                {
+                    Content = presetName, FontSize = 11,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Left
+                };
+                loadBtn.Classes.Add("lib-item");
+                Grid.SetColumn(loadBtn, 0);
+
+                var delBtn = new Button
+                {
+                    Content = "\u2715", FontSize = 9,
+                    Padding = new Thickness(4, 0),
+                    Background = Brushes.Transparent,
+                    Foreground = new SolidColorBrush(Color.Parse("#FF6B6B")),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    MinWidth = 0, MinHeight = 0
+                };
+                Grid.SetColumn(delBtn, 1);
+
+                loadBtn.Click += (_, _) =>
+                {
+                    var data = PresetManager.Load(presetName);
+                    if (data != null)
+                    {
+                        PresetManager.ApplyPreset(data, engine.Effects);
+                        StatusLabel.Text = $"Loaded: {presetName}";
+                    }
+                };
+
+                delBtn.Click += (_, _) =>
+                {
+                    PresetManager.Delete(presetName);
+                    StatusLabel.Text = $"Deleted: {presetName}";
+                    RefreshDockedUserPresets();
+                };
+
+                grid.Children.Add(loadBtn);
+                grid.Children.Add(delBtn);
+                UserPresetsDockPanel.Children.Add(grid);
+            }
         }
 
         private static KnobControl MakeKnob(string label, double min, double max, double value, Action<float> onChange, Func<double, string> fmt, string color)

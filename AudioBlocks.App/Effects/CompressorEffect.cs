@@ -30,6 +30,8 @@ namespace AudioBlocks.App.Effects
         private float lastGainReductionDb;
         private int sampleRate = 48000;
 
+        public void SetSampleRate(int sr) => sampleRate = sr;
+
         /// <summary>Current gain reduction in dB (negative when compressing).</summary>
         public float GainReductionDb => lastGainReductionDb;
 

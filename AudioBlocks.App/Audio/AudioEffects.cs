@@ -13,12 +13,25 @@ namespace AudioBlocks.App.Audio
         /// </summary>
         public float MasterVolume { get; set; } = 1.0f;
 
+        private int sampleRate = 48000;
+        public int SampleRate
+        {
+            get => sampleRate;
+            set
+            {
+                sampleRate = value;
+                foreach (var effect in effects)
+                    effect.SetSampleRate(value);
+            }
+        }
+
         public event Action? OnEffectsChanged;
 
         public void AddEffect(IAudioEffect effect)
         {
             if (effect != null && !effects.Contains(effect))
             {
+                effect.SetSampleRate(sampleRate);
                 effects.Add(effect);
                 OnEffectsChanged?.Invoke();
             }
@@ -45,6 +58,7 @@ namespace AudioBlocks.App.Audio
         public void InsertEffect(int index, IAudioEffect effect)
         {
             if (effect == null || effects.Contains(effect)) return;
+            effect.SetSampleRate(sampleRate);
             index = Math.Clamp(index, 0, effects.Count);
             effects.Insert(index, effect);
             OnEffectsChanged?.Invoke();

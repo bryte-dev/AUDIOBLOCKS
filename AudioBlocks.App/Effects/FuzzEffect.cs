@@ -32,21 +32,23 @@ namespace AudioBlocks.App.Effects
         private float gateEnvL, gateEnvR;
         private float dcBlockL, dcBlockR;
         private float dcPrevL, dcPrevR;
+        private int sampleRate = 48000;
+
+        public void SetSampleRate(int sr) => sampleRate = sr;
 
         public void Process(float[] buffer, int count)
         {
             if (!Enabled) return;
 
-            // Fuzz gain: exponential curve for more dramatic range
-            float gain = 1f + Fuzz * Fuzz * 80f;
-            float compensation = 1f / MathF.Sqrt(gain) * 1.4f;
+            // Fuzz gain: steep curve — gets destroyed fast
+                float gain = 1f + Fuzz * Fuzz * 120f;
 
-            // Asymmetry factor — positive half clips harder (silicon transistor character)
-            float asymmetry = 0.3f + Fuzz * 0.5f;
+                // Asymmetry: how much harder the positive half clips (silicon transistor)
+                float asymmetry = 0.4f + Fuzz * 0.6f;
 
-            // Tone filter coefficients
-            float toneFreq = 300f + Tone * 5700f;
-            float lpCoeff = 1f - MathF.Exp(-2f * MathF.PI * toneFreq / 48000f);
+                // Tone filter: much darker range than distortion (200Hz–3kHz vs 500Hz–15kHz)
+                float toneFreq = 200f + Tone * 2800f;
+                float lpCoeff = 1f - MathF.Exp(-2f * MathF.PI * toneFreq / sampleRate);
 
             // Gate envelope follower speed
             float gateAttack = 0.002f;
@@ -56,20 +58,20 @@ namespace AudioBlocks.App.Effects
             {
                 // Process Left Channel
                 float dryL = buffer[i];
-                float wetL = ProcessSample(dryL, ref gateEnvL, ref lpStateL, ref dcPrevL, ref dcBlockL, gain, compensation, asymmetry, lpCoeff, gateAttack, gateRelease);
+                float wetL = ProcessSample(dryL, ref gateEnvL, ref lpStateL, ref dcPrevL, ref dcBlockL, gain, asymmetry, lpCoeff, gateAttack, gateRelease);
                 buffer[i] = Math.Clamp(dryL * (1f - Mix) + wetL * Mix, -1f, 1f);
 
                 // Process Right Channel
                 if (i + 1 < count)
                 {
                     float dryR = buffer[i + 1];
-                    float wetR = ProcessSample(dryR, ref gateEnvR, ref lpStateR, ref dcPrevR, ref dcBlockR, gain, compensation, asymmetry, lpCoeff, gateAttack, gateRelease);
+                    float wetR = ProcessSample(dryR, ref gateEnvR, ref lpStateR, ref dcPrevR, ref dcBlockR, gain, asymmetry, lpCoeff, gateAttack, gateRelease);
                     buffer[i + 1] = Math.Clamp(dryR * (1f - Mix) + wetR * Mix, -1f, 1f);
                 }
             }
         }
 
-        private float ProcessSample(float x, ref float gateEnv, ref float lpState, ref float dcPrev, ref float dcBlock, float gain, float compensation, float asymmetry, float lpCoeff, float gateAttack, float gateRelease)
+        private float ProcessSample(float x, ref float gateEnv, ref float lpState, ref float dcPrev, ref float dcBlock, float gain, float asymmetry, float lpCoeff, float gateAttack, float gateRelease)
         {
             // === Input gate — kill signal below threshold (removes fizzy tail) ===
             float absX = MathF.Abs(x);
@@ -79,19 +81,32 @@ namespace AudioBlocks.App.Effects
                 gateEnv += gateRelease * (absX - gateEnv);
 
             float gateMask = gateEnv > Gate ? 1f : gateEnv / (Gate + 1e-8f);
-            gateMask *= gateMask; // Smooth squared curve
+            gateMask *= gateMask;
             x *= gateMask;
 
-            // === Asymmetric clipping (silicon fuzz character) ===
+            // === Amplify ===
             x *= gain;
 
-            float wet;
-            if (x >= 0)
-                wet = MathF.Tanh(x * (1f + asymmetry)) * compensation;
-            else
-                wet = MathF.Tanh(x * (1f - asymmetry * 0.3f)) * compensation;
+            // === Partial rectification — octave-up artifacts at high fuzz ===
+            float rectMix = asymmetry * 0.3f;
+            x = x * (1f - rectMix) + MathF.Abs(x) * rectMix;
 
-            // === Tone filter (low-pass for that dark woolly sound) ===
+            // === Hard asymmetric clipping (silicon fuzz — flat-top, not smooth like tanh) ===
+            float posClip = 0.8f / (1f + asymmetry);   // positive clips earlier
+            float negClip = 0.8f + asymmetry * 0.3f;    // negative clips later
+
+            float wet;
+            if (x > posClip)
+                wet = posClip;
+            else if (x < -negClip)
+                wet = -negClip;
+            else
+                wet = x;
+
+            // Normalize to [-1, 1] range
+            wet /= MathF.Max(posClip, negClip);
+
+            // === Tone filter (low-pass for dark woolly sound) ===
             lpState += lpCoeff * (wet - lpState);
             wet = lpState;
 

@@ -13,6 +13,11 @@ namespace AudioBlocks.App.Audio
         void Process(float[] buffer, int count);
 
         /// <summary>
+        /// Called when the audio sample rate changes. Effects should update internal coefficients.
+        /// </summary>
+        void SetSampleRate(int sampleRate) { }
+
+        /// <summary>
         /// Current gain reduction in dB (0 = no reduction, negative = reducing).
         /// Used for metering. Effects that don't reduce gain return 0.
         /// </summary>

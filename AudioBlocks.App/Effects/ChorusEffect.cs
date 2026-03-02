@@ -23,6 +23,8 @@ namespace AudioBlocks.App.Effects
         private double lfoPhase;
         private int sampleRate = 48000;
 
+        public void SetSampleRate(int sr) => sampleRate = sr;
+
         public void Process(float[] buffer, int count)
         {
             double lfoFreq = 0.1 + Rate * 4.9;

@@ -29,6 +29,8 @@ namespace AudioBlocks.App.Effects
         private float envelope;
         private int sampleRate = 48000;
 
+        public void SetSampleRate(int sr) => sampleRate = sr;
+
         /// <summary>Current gate gain (0=closed, 1=open). Read from UI for metering.</summary>
         public float CurrentGateGain => gateGain;
 

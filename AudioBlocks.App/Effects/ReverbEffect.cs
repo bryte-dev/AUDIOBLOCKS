@@ -25,27 +25,46 @@ namespace AudioBlocks.App.Effects
         private int p1, p2, p3, p4, p5, p6, p7, p8;
         private float d1, d2, d3, d4, d5, d6, d7, d8;
 
-        // Allpass filters for diffusion (2 cascaded)
-        private readonly float[] ap1 = new float[556], ap2 = new float[441];
-        private int ap1Pos, ap2Pos;
+        // 4 allpass filters per channel for diffusion (Freeverb standard)
+        // Left channel
+        private readonly float[] apL1 = new float[556], apL2 = new float[441];
+        private readonly float[] apL3 = new float[341], apL4 = new float[225];
+        private int apL1Pos, apL2Pos, apL3Pos, apL4Pos;
+        // Right channel (sizes offset by +23 for stereo decorrelation)
+        private readonly float[] apR1 = new float[579], apR2 = new float[464];
+        private readonly float[] apR3 = new float[364], apR4 = new float[248];
+        private int apR1Pos, apR2Pos, apR3Pos, apR4Pos;
+
+        // HP filter state to prevent low-end mud
+        private float hpStateL, hpStateR;
+        private int sampleRate = 48000;
+
+        public void SetSampleRate(int sr) => sampleRate = sr;
 
         public void Process(float[] buffer, int count)
         {
-            float fb = 0.4f + Decay * 0.50f;  // 0.4..0.90
+            float fb = 0.4f + Decay * 0.52f;  // 0.4..0.92
             float damp = Damping * 0.6f;
             float wet = Mix;
             float dry = 1f - Mix;
             const float apCoeff = 0.5f;
+            // HP coefficient (~120Hz) to prevent low-end mud
+            float hpCoeff = 1f - MathF.Exp(-2f * MathF.PI * 120f / sampleRate);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < count; i += 2)
             {
-                float input = buffer[i];
+                float inL = buffer[i];
+                float inR = (i + 1 < count) ? buffer[i + 1] : inL;
+                // Mix to mono for comb input
+                float input = (inL + inR) * 0.5f;
 
-                // Sum 8 comb filter outputs
+                // Read from all 8 combs
                 float r1 = c1[p1], r2 = c2[p2], r3 = c3[p3], r4 = c4[p4];
                 float r5 = c5[p5], r6 = c6[p6], r7 = c7[p7], r8 = c8[p8];
 
-                float combSum = (r1 + r2 + r3 + r4 + r5 + r6 + r7 + r8) * 0.125f;
+                // Split combs for stereo width: odd → L, even → R
+                float combL = (r1 + r3 + r5 + r7) * 0.25f;
+                float combR = (r2 + r4 + r6 + r8) * 0.25f;
 
                 // Write back with lowpass damping
                 WriteComb(c1, ref p1, ref d1, input, r1, fb, damp);
@@ -57,11 +76,31 @@ namespace AudioBlocks.App.Effects
                 WriteComb(c7, ref p7, ref d7, input, r7, fb, damp);
                 WriteComb(c8, ref p8, ref d8, input, r8, fb, damp);
 
-                // Allpass diffusion
-                float diff = AllPass(ap1, ref ap1Pos, combSum, apCoeff);
-                diff = AllPass(ap2, ref ap2Pos, diff, apCoeff);
+                // HP filter to cut low-end mud buildup
+                hpStateL += hpCoeff * (combL - hpStateL);
+                combL -= hpStateL;
+                hpStateR += hpCoeff * (combR - hpStateR);
+                combR -= hpStateR;
 
-                buffer[i] = Math.Clamp(input * dry + diff * wet, -1f, 1f);
+                // Left allpass diffusion chain (4 cascaded)
+                float diffL = AllPass(apL1, ref apL1Pos, combL, apCoeff);
+                diffL = AllPass(apL2, ref apL2Pos, diffL, apCoeff);
+                diffL = AllPass(apL3, ref apL3Pos, diffL, apCoeff);
+                diffL = AllPass(apL4, ref apL4Pos, diffL, apCoeff);
+
+                // Right allpass diffusion chain (4 cascaded, offset sizes for decorrelation)
+                float diffR = AllPass(apR1, ref apR1Pos, combR, apCoeff);
+                diffR = AllPass(apR2, ref apR2Pos, diffR, apCoeff);
+                diffR = AllPass(apR3, ref apR3Pos, diffR, apCoeff);
+                diffR = AllPass(apR4, ref apR4Pos, diffR, apCoeff);
+
+                // Soft limit reverb output to prevent harsh clipping
+                diffL = MathF.Tanh(diffL);
+                diffR = MathF.Tanh(diffR);
+
+                buffer[i] = Math.Clamp(inL * dry + diffL * wet, -1f, 1f);
+                if (i + 1 < count)
+                    buffer[i + 1] = Math.Clamp(inR * dry + diffR * wet, -1f, 1f);
             }
         }
 

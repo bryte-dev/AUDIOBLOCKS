@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
 using System;
@@ -44,10 +45,22 @@ namespace AudioBlocks.App.Controls
         private Point dragStart;
         private double dragStartValue;
         private const double Sensitivity = 0.004;
+        private bool isEditing;
+        private string editText = "";
 
         static KnobControl()
         {
             AffectsRender<KnobControl>(ValueProperty, MinimumProperty, MaximumProperty, KnobColorProperty);
+            DoubleTappedEvent.AddClassHandler<KnobControl>((x, e) =>
+            {
+                x.isDragging = false;
+                x.isEditing = true;
+                x.editText = "";
+                x.Focusable = true;
+                x.Focus();
+                x.InvalidateVisual();
+                e.Handled = true;
+            });
         }
 
         private static double CoerceValue(AvaloniaObject obj, double val)
@@ -66,6 +79,7 @@ namespace AudioBlocks.App.Controls
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
+            if (isEditing) { CommitEdit(); e.Handled = true; return; }
             e.Handled = true;
             isDragging = true;
             dragStart = e.GetPosition(this);
@@ -97,6 +111,41 @@ namespace AudioBlocks.App.Controls
             double step = (Maximum - Minimum) * 0.015;
             Value = Math.Clamp(Value + e.Delta.Y * step, Minimum, Maximum);
             e.Handled = true;
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (!isEditing) { base.OnKeyDown(e); return; }
+            if (e.Key == Key.Enter) { CommitEdit(); e.Handled = true; }
+            else if (e.Key == Key.Escape) { CancelEdit(); e.Handled = true; }
+            else if (e.Key == Key.Back && editText.Length > 0) { editText = editText[..^1]; InvalidateVisual(); e.Handled = true; }
+            else if (e.Key >= Key.D0 && e.Key <= Key.D9) { editText += (char)('0' + (e.Key - Key.D0)); InvalidateVisual(); e.Handled = true; }
+            else if (e.Key >= Key.NumPad0 && e.Key <= Key.NumPad9) { editText += (char)('0' + (e.Key - Key.NumPad0)); InvalidateVisual(); e.Handled = true; }
+            else if (e.Key is Key.OemPeriod or Key.Decimal) { if (!editText.Contains('.')) { editText += '.'; InvalidateVisual(); } e.Handled = true; }
+            else if (e.Key is Key.OemMinus or Key.Subtract) { if (editText.Length == 0) { editText = "-"; InvalidateVisual(); } e.Handled = true; }
+        }
+
+        protected override void OnLostFocus(RoutedEventArgs e)
+        {
+            if (isEditing) CommitEdit();
+            base.OnLostFocus(e);
+        }
+
+        private void CommitEdit()
+        {
+            if (isEditing && double.TryParse(editText, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out double val))
+                Value = Math.Clamp(val, Minimum, Maximum);
+            isEditing = false;
+            Focusable = false;
+            InvalidateVisual();
+        }
+
+        private void CancelEdit()
+        {
+            isEditing = false;
+            Focusable = false;
+            InvalidateVisual();
         }
 
         private IBrush GetThemeBrush(string key, string fallback)
@@ -175,10 +224,13 @@ namespace AudioBlocks.App.Controls
             }
 
             // Display value
-            if (!string.IsNullOrEmpty(DisplayValue))
+            string displayStr = isEditing ? (editText.Length > 0 ? editText + "\u258F" : "\u2026") : DisplayValue;
+            if (!string.IsNullOrEmpty(displayStr))
             {
-                var valBrush = GetThemeBrush("KnobValue", "#E0E0E0");
-                var valText = new FormattedText(DisplayValue,
+                var valBrush = isEditing
+                    ? new SolidColorBrush(Color.Parse("#FFFFFF"))
+                    : GetThemeBrush("KnobValue", "#E0E0E0");
+                var valText = new FormattedText(displayStr,
                     System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
                     new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),

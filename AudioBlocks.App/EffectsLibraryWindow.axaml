@@ -131,6 +131,27 @@
           <TextBlock Text="Ambient" Foreground="{DynamicResource FgText}" FontSize="12"/>
         </Border>
 
+        <!-- SAVE PRESET -->
+        <Border Classes="preset-item" x:Name="SavePresetBtn" Margin="0,6,0,0">
+          <TextBlock Text="?? Save Current Chain" Foreground="{DynamicResource AccentBrush}" FontSize="12"/>
+        </Border>
+        <StackPanel x:Name="SavePanel" Orientation="Horizontal" Spacing="4" IsVisible="False" Margin="0,2">
+          <TextBox x:Name="PresetNameBox" Watermark="Preset name..." FontSize="12" MinWidth="160" Height="28"/>
+          <Button x:Name="SaveConfirmBtn" Content="?" FontSize="12" Height="28"/>
+        </StackPanel>
+
+        <Separator Margin="0,6"/>
+        <TextBlock Text="USER PRESETS" Foreground="{DynamicResource MutedText}" FontSize="10" FontWeight="Bold"/>
+        <StackPanel x:Name="UserPresetsPanel" Spacing="2"/>
+
+        <Separator Margin="0,6"/>
+        <Border Classes="preset-item" x:Name="ExportPresetBtn">
+          <TextBlock Text="?? Export Preset..." Foreground="{DynamicResource FgText}" FontSize="12"/>
+        </Border>
+        <Border Classes="preset-item" x:Name="ImportPresetBtn">
+          <TextBlock Text="?? Import Preset..." Foreground="{DynamicResource FgText}" FontSize="12"/>
+        </Border>
+
         <Separator Margin="0,6"/>
         <TextBlock x:Name="StatusLabel" Text="" Foreground="{DynamicResource AccentCyan}" FontSize="11" HorizontalAlignment="Center"/>
       </StackPanel>

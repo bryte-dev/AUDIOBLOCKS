@@ -24,6 +24,8 @@ namespace AudioBlocks.App.Effects
         private float fbHpState;
         private int sampleRate = 48000;
 
+        public void SetSampleRate(int sr) => sampleRate = sr;
+
         public void Process(float[] buffer, int count)
         {
             // Calculate delay in samples from time parameter and actual sample rate

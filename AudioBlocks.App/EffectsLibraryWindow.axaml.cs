@@ -3,6 +3,9 @@ using AudioBlocks.App.Effects;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using System;
 using System.Runtime.InteropServices;
 
@@ -50,6 +53,42 @@ namespace AudioBlocks.App
             PresetCrunch.PointerPressed += (_, _) => ApplyPreset("Crunch");
             PresetLead.PointerPressed += (_, _) => ApplyPreset("Lead");
             PresetAmbient.PointerPressed += (_, _) => ApplyPreset("Ambient");
+
+            SavePresetBtn.PointerPressed += (_, _) => { SavePanel.IsVisible = true; PresetNameBox.Text = ""; PresetNameBox.Focus(); };
+            SaveConfirmBtn.Click += (_, _) => SaveUserPreset();
+            PresetNameBox.KeyDown += (_, e) => { if (e.Key == Key.Enter) SaveUserPreset(); };
+            RefreshUserPresets();
+
+            ExportPresetBtn.PointerPressed += async (_, _) =>
+            {
+                var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Export Preset",
+                    DefaultExtension = "json",
+                    FileTypeChoices = new[] { new FilePickerFileType("AudioBlocks Preset") { Patterns = new[] { "*.json" } } },
+                    SuggestedFileName = "MyPreset"
+                });
+                if (file == null) return;
+                var preset = PresetManager.CapturePreset(System.IO.Path.GetFileNameWithoutExtension(file.Name ?? "Preset"), engine.Effects);
+                PresetManager.SaveToPath(preset, file.Path.LocalPath);
+                StatusLabel.Text = $"Exported: {file.Name}";
+            };
+            ImportPresetBtn.PointerPressed += async (_, _) =>
+            {
+                var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Import Preset",
+                    FileTypeFilter = new[] { new FilePickerFileType("AudioBlocks Preset") { Patterns = new[] { "*.json" } } },
+                    AllowMultiple = false
+                });
+                if (files.Count == 0) return;
+                var preset = PresetManager.LoadFromPath(files[0].Path.LocalPath);
+                if (preset != null)
+                {
+                    PresetManager.ApplyPreset(preset, engine.Effects);
+                    StatusLabel.Text = $"Imported: {preset.Name}";
+                }
+            };
         }
 
         // =============================================================
@@ -205,6 +244,83 @@ namespace AudioBlocks.App
                     break;
             }
             StatusLabel.Text = $"Preset: {preset}";
+        }
+
+        private void SaveUserPreset()
+        {
+            var name = PresetNameBox.Text?.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+
+            var preset = PresetManager.CapturePreset(name, engine.Effects);
+            PresetManager.Save(preset);
+            SavePanel.IsVisible = false;
+            StatusLabel.Text = $"Saved: {name}";
+            RefreshUserPresets();
+        }
+
+        private void RefreshUserPresets()
+        {
+            UserPresetsPanel.Children.Clear();
+            var names = PresetManager.GetAll();
+
+            foreach (var name in names)
+            {
+                var presetName = name;
+
+                var grid = new Grid { Margin = new Thickness(0, 1) };
+                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+                grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+
+                var loadBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.Parse("#2A2A2A")),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(10, 6),
+                    Cursor = new Cursor(StandardCursorType.Hand),
+                    Child = new TextBlock
+                    {
+                        Text = presetName,
+                        FontSize = 12,
+                        Foreground = new SolidColorBrush(Color.Parse("#E0E0E0")),
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                };
+                Grid.SetColumn(loadBorder, 0);
+
+                var delBtn = new Button
+                {
+                    Content = "✕",
+                    FontSize = 9,
+                    Padding = new Thickness(4, 0),
+                    Background = Brushes.Transparent,
+                    Foreground = new SolidColorBrush(Color.Parse("#888888")),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    MinWidth = 0,
+                    MinHeight = 0
+                };
+                Grid.SetColumn(delBtn, 1);
+
+                loadBorder.PointerPressed += (_, _) =>
+                {
+                    var data = PresetManager.Load(presetName);
+                    if (data != null)
+                    {
+                        PresetManager.ApplyPreset(data, engine.Effects);
+                        StatusLabel.Text = $"Loaded: {presetName}";
+                    }
+                };
+
+                delBtn.Click += (_, _) =>
+                {
+                    PresetManager.Delete(presetName);
+                    StatusLabel.Text = $"Deleted: {presetName}";
+                    RefreshUserPresets();
+                };
+
+                grid.Children.Add(loadBorder);
+                grid.Children.Add(delBtn);
+                UserPresetsPanel.Children.Add(grid);
+            }
         }
     }
 }
