@@ -1,17 +1,32 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
         x:Class="AudioBlocks.App.AudioSettingsWindow"
-        Title="Audio Settings"
-        Width="680" Height="640"
+        Title="Settings — AudioBlocks"
+        Width="720" Height="660"
+        Icon="avares://AudioBlocks.App/Assets/logo.ico"
         Background="{DynamicResource AppBg}"
         WindowStartupLocation="CenterOwner">
 
   <Window.Styles>
+    <Style Selector="Border">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.18"/>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+        </Transitions>
+      </Setter>
+    </Style>
     <Style Selector="Border.card">
       <Setter Property="Background" Value="{DynamicResource CardBg}"/>
-      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="CornerRadius" Value="12"/>
       <Setter Property="Padding" Value="14"/>
       <Setter Property="Margin" Value="0,4"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style Selector="Border.card:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource SurfaceBg}"/>
     </Style>
     <Style Selector="TextBlock.label">
       <Setter Property="Foreground" Value="{DynamicResource MutedText}"/>
@@ -19,144 +34,243 @@
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Margin" Value="0,0,0,3"/>
     </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="14,8"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button:pointerover">
+      <Setter Property="RenderTransform" Value="scale(1.01)"/>
+    </Style>
+    <Style Selector="Button:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.98)"/>
+    </Style>
+    <Style Selector="Separator">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="Height" Value="1"/>
+    </Style>
   </Window.Styles>
 
-  <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <StackPanel Margin="16" Spacing="10">
-      <TextBlock Text="Audio Settings" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource FgText}"/>
-
-      <!-- THEME -->
-      <Border Classes="card">
-        <StackPanel Spacing="6">
-          <TextBlock Text="Appearance" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Theme" VerticalAlignment="Center" Foreground="{DynamicResource MutedText}" FontSize="12"/>
-            <ComboBox x:Name="ThemeComboBox" Width="140">
-              <ComboBoxItem Content="Dark"/>
-              <ComboBoxItem Content="Light"/>
-            </ComboBox>
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <!-- DRIVER + PARAMS -->
-      <Border Classes="card">
-        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="10">
-
-          <StackPanel Grid.Column="0" Grid.Row="0">
-            <TextBlock Classes="label" Text="Audio Driver"/>
-            <ComboBox x:Name="DriverComboBox" HorizontalAlignment="Stretch">
-              <ComboBoxItem Content="WASAPI Shared"/>
-              <ComboBoxItem Content="WASAPI Exclusive"/>
-              <ComboBoxItem Content="ASIO"/>
-            </ComboBox>
-          </StackPanel>
-
-          <StackPanel Grid.Column="1" Grid.Row="0">
-            <TextBlock Classes="label" Text="Sample Rate"/>
-            <ComboBox x:Name="SampleRateComboBox" HorizontalAlignment="Stretch">
-              <ComboBoxItem Content="44100"/>
-              <ComboBoxItem Content="48000"/>
-              <ComboBoxItem Content="96000"/>
-            </ComboBox>
-          </StackPanel>
-
-          <StackPanel Grid.Column="0" Grid.Row="1">
-            <TextBlock Classes="label" Text="ASIO Driver"/>
-            <ComboBox x:Name="AsioDriverComboBox" HorizontalAlignment="Stretch"/>
-          </StackPanel>
-
-          <StackPanel Grid.Column="1" Grid.Row="1">
-            <TextBlock Classes="label" Text="Buffer Size"/>
-            <ComboBox x:Name="BufferSizeComboBox" HorizontalAlignment="Stretch">
-              <ComboBoxItem Content="64"/>
-              <ComboBoxItem Content="128"/>
-              <ComboBoxItem Content="256"/>
-              <ComboBoxItem Content="512"/>
-            </ComboBox>
-          </StackPanel>
-
-          <StackPanel Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2">
-            <TextBlock x:Name="DriverNoteText" Foreground="{DynamicResource DimText}" FontSize="11" FontStyle="Italic" TextWrapping="Wrap"/>
-          </StackPanel>
-        </Grid>
-      </Border>
-
-      <!-- WASAPI DEVICES -->
-      <Border Classes="card">
-        <StackPanel Spacing="8">
-          <TextBlock Text="WASAPI Devices" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-            <StackPanel Grid.Column="0">
-              <TextBlock Classes="label" Text="Input Device"/>
-              <ComboBox x:Name="InputDeviceComboBox" HorizontalAlignment="Stretch"/>
+  <Grid ColumnDefinitions="180,*">
+    <!-- PAGE NAV -->
+    <Border Grid.Column="0" Background="{DynamicResource PanelBg}" Padding="10,14" CornerRadius="0,16,0,0">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Settings" FontSize="18" FontWeight="ExtraBold" Foreground="{DynamicResource FgText}" Margin="4,0,0,10"/>
+        <ListBox x:Name="NavList" SelectedIndex="0" Background="Transparent" BorderThickness="0">
+          <ListBoxItem>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="mdi-headphones" FontSize="16" Foreground="{DynamicResource FgText}"/>
+              <TextBlock Text="Audio" VerticalAlignment="Center"/>
             </StackPanel>
-            <StackPanel Grid.Column="1">
-              <TextBlock Classes="label" Text="Output Device"/>
-              <ComboBox x:Name="OutputDeviceComboBox" HorizontalAlignment="Stretch"/>
+          </ListBoxItem>
+          <ListBoxItem>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="mdi-monitor" FontSize="16" Foreground="{DynamicResource FgText}"/>
+              <TextBlock Text="Display" VerticalAlignment="Center"/>
             </StackPanel>
-          </Grid>
-        </StackPanel>
-      </Border>
-
-      <!-- ASIO MAPPING -->
-      <Border Classes="card">
-        <StackPanel Spacing="8">
-          <TextBlock Text="ASIO Channel Mapping" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
-          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-            <StackPanel Grid.Column="0" Spacing="4">
-              <TextBlock Classes="label" Text="Input L / R"/>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <ComboBox x:Name="AsioInLeftComboBox" Width="110"/>
-                <ComboBox x:Name="AsioInRightComboBox" Width="110"/>
-              </StackPanel>
+          </ListBoxItem>
+          <ListBoxItem>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <i:Icon Value="mdi-information-outline" FontSize="16" Foreground="{DynamicResource FgText}"/>
+              <TextBlock Text="About" VerticalAlignment="Center"/>
             </StackPanel>
-            <StackPanel Grid.Column="1" Spacing="4">
-              <TextBlock Classes="label" Text="Output L / R"/>
-              <StackPanel Orientation="Horizontal" Spacing="6">
-                <ComboBox x:Name="AsioOutLeftComboBox" Width="110"/>
-                <ComboBox x:Name="AsioOutRightComboBox" Width="110"/>
-              </StackPanel>
-            </StackPanel>
-          </Grid>
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
-            <Button x:Name="OpenAsioControlPanelButton" Content="ASIO Control Panel" Height="30"/>
-            <Button x:Name="TestRoutingButton" Content="Test Routing" Height="30"/>
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <!-- METERS -->
-      <Border Classes="card">
-        <StackPanel Spacing="6">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="Monitoring" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
-            <TextBlock x:Name="ProcessingLabel" Text="0.00 ms" Foreground="{DynamicResource DimText}" FontSize="11" Grid.Column="1"/>
-          </Grid>
-          <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="18"/>
-          <StackPanel Orientation="Horizontal" Spacing="14">
-            <TextBlock x:Name="LatencyLabel" Text="—" Foreground="{DynamicResource FgText}" FontSize="12"/>
-            <TextBlock x:Name="CpuWarningLabel" Text="" Foreground="#FF6B6B" FontWeight="Bold" FontSize="12"/>
-          </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <!-- ACTIONS -->
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <Button x:Name="ApplyButton" Content="Apply &amp; Start" Height="36" Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="Bold"/>
-        <Button x:Name="StartSineButton" Content="Start Sine" Height="36"/>
-        <Button x:Name="StopSineButton" Content="Stop Sine" Height="36"/>
+          </ListBoxItem>
+        </ListBox>
       </StackPanel>
+    </Border>
 
-      <!-- LOGS -->
-      <Border Classes="card">
-        <StackPanel Spacing="4">
-          <TextBlock Text="Log" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
-          <TextBox x:Name="StatusLabel" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-                   Height="120" Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource MutedText}" FontSize="11"/>
+    <!-- PAGE CONTENT -->
+    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="16" Spacing="10">
+
+        <!-- ═══════ PAGE: AUDIO ═══════ -->
+        <StackPanel x:Name="PageAudio" Spacing="10">
+          <TextBlock Text="Audio Configuration" FontSize="16" FontWeight="ExtraBold" Foreground="{DynamicResource FgText}"/>
+
+          <Border Classes="card">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="10">
+              <StackPanel Grid.Column="0" Grid.Row="0">
+                <TextBlock Classes="label" Text="Audio Driver"/>
+                <ComboBox x:Name="DriverComboBox" HorizontalAlignment="Stretch">
+                  <ComboBoxItem Content="WASAPI Shared"/>
+                  <ComboBoxItem Content="WASAPI Exclusive"/>
+                  <ComboBoxItem Content="ASIO"/>
+                </ComboBox>
+              </StackPanel>
+              <StackPanel Grid.Column="1" Grid.Row="0">
+                <TextBlock Classes="label" Text="Sample Rate"/>
+                <ComboBox x:Name="SampleRateComboBox" HorizontalAlignment="Stretch">
+                  <ComboBoxItem Content="44100"/>
+                  <ComboBoxItem Content="48000"/>
+                  <ComboBoxItem Content="96000"/>
+                </ComboBox>
+              </StackPanel>
+              <StackPanel Grid.Column="0" Grid.Row="1">
+                <TextBlock Classes="label" Text="ASIO Driver"/>
+                <ComboBox x:Name="AsioDriverComboBox" HorizontalAlignment="Stretch"/>
+              </StackPanel>
+              <StackPanel Grid.Column="1" Grid.Row="1">
+                <TextBlock Classes="label" Text="Buffer Size"/>
+                <ComboBox x:Name="BufferSizeComboBox" HorizontalAlignment="Stretch">
+                  <ComboBoxItem Content="64"/>
+                  <ComboBoxItem Content="128"/>
+                  <ComboBoxItem Content="256"/>
+                  <ComboBoxItem Content="512"/>
+                </ComboBox>
+              </StackPanel>
+              <StackPanel Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2">
+                <TextBlock x:Name="DriverNoteText" Foreground="{DynamicResource DimText}" FontSize="11" FontStyle="Italic" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Grid>
+          </Border>
+
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="WASAPI Devices" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="label" Text="Input Device"/>
+                  <ComboBox x:Name="InputDeviceComboBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1">
+                  <TextBlock Classes="label" Text="Output Device"/>
+                  <ComboBox x:Name="OutputDeviceComboBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Text="ASIO Channel Mapping" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <StackPanel Grid.Column="0" Spacing="4">
+                  <TextBlock Classes="label" Text="Input L / R"/>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ComboBox x:Name="AsioInLeftComboBox" Width="110"/>
+                    <ComboBox x:Name="AsioInRightComboBox" Width="110"/>
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <TextBlock Classes="label" Text="Output L / R"/>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ComboBox x:Name="AsioOutLeftComboBox" Width="110"/>
+                    <ComboBox x:Name="AsioOutRightComboBox" Width="110"/>
+                  </StackPanel>
+                </StackPanel>
+              </Grid>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                <Button x:Name="OpenAsioControlPanelButton" Content="ASIO Control Panel" Height="32" CornerRadius="8" Padding="12,0"/>
+                <Button x:Name="TestRoutingButton" Content="Test Routing" Height="32" CornerRadius="8" Padding="12,0"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card">
+            <StackPanel Spacing="6">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="Monitoring" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
+                <TextBlock x:Name="ProcessingLabel" Text="0.00 ms" Foreground="{DynamicResource DimText}" FontSize="11" Grid.Column="1" FontFamily="Consolas"/>
+              </Grid>
+              <ProgressBar x:Name="VuMeter" Minimum="0" Maximum="1" Height="18" CornerRadius="4"/>
+              <StackPanel Orientation="Horizontal" Spacing="14">
+                <TextBlock x:Name="LatencyLabel" Text="—" Foreground="{DynamicResource FgText}" FontSize="12"/>
+                <TextBlock x:Name="CpuWarningLabel" Text="" Foreground="#FF6B6B" FontWeight="Bold" FontSize="12"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="ApplyButton" Content="Apply &amp; Start" Height="38" Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="Bold" CornerRadius="10" Padding="16,0"/>
+            <Button x:Name="StartSineButton" Content="Start Sine" Height="38" CornerRadius="8" Padding="12,0"/>
+            <Button x:Name="StopSineButton" Content="Stop Sine" Height="38" CornerRadius="8" Padding="12,0"/>
+          </StackPanel>
+
+          <Border Classes="card">
+            <StackPanel Spacing="4">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <i:Icon Value="mdi-text-box-outline" FontSize="13" Foreground="{DynamicResource DimText}"/>
+                <TextBlock Text="Log" FontWeight="SemiBold" Foreground="{DynamicResource MutedText}" FontSize="11"/>
+              </StackPanel>
+              <TextBox x:Name="StatusLabel" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                       Height="100" Background="{DynamicResource SurfaceBg}" Foreground="{DynamicResource MutedText}" FontSize="11" CornerRadius="8" FontFamily="Consolas"/>
+            </StackPanel>
+          </Border>
         </StackPanel>
-      </Border>
 
-    </StackPanel>
-  </ScrollViewer>
+        <!-- ═══════ PAGE: DISPLAY ═══════ -->
+        <StackPanel x:Name="PageDisplay" Spacing="10" IsVisible="False">
+          <TextBlock Text="Display Settings" FontSize="16" FontWeight="ExtraBold" Foreground="{DynamicResource FgText}"/>
+          <Border Classes="card">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Theme" FontWeight="SemiBold" Foreground="{DynamicResource FgText}"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Color scheme" VerticalAlignment="Center" Foreground="{DynamicResource MutedText}" FontSize="12"/>
+                <ComboBox x:Name="ThemeComboBox" Width="140">
+                  <ComboBoxItem Content="Dark"/>
+                  <ComboBoxItem Content="Light"/>
+                </ComboBox>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- ═══════ PAGE: ABOUT ═══════ -->
+        <StackPanel x:Name="PageAbout" Spacing="10" IsVisible="False">
+          <TextBlock Text="About AudioBlocks" FontSize="16" FontWeight="ExtraBold" Foreground="{DynamicResource FgText}"/>
+          <Border Classes="card">
+            <StackPanel Spacing="10">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <Border Width="48" Height="48" CornerRadius="12" ClipToBounds="True">
+                  <Image Source="avares://AudioBlocks.App/Assets/logo.ico" Stretch="Uniform"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="AudioBlocks" FontSize="22" FontWeight="ExtraBold" Foreground="{DynamicResource FgText}"/>
+                  <TextBlock Text="Live Audio FX Engine" Foreground="{DynamicResource DimText}" FontSize="13"/>
+                </StackPanel>
+              </StackPanel>
+              <Separator Margin="0,4"/>
+              <TextBlock x:Name="VersionLabel" Text="Version 1.0.0" Foreground="{DynamicResource FgText}" FontSize="12"/>
+              <TextBlock Text="Runtime: .NET 8 · Avalonia UI 11 · NAudio 2.2" Foreground="{DynamicResource MutedText}" FontSize="11" FontFamily="Consolas"/>
+              <Separator Margin="0,4"/>
+              <TextBlock Text="Description" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="13"/>
+              <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource MutedText}" FontSize="12"
+                         Text="AudioBlocks is a real-time audio effects processor — a virtual pedalboard. Sound enters from a microphone or audio interface, passes through a configurable effects chain (distortion, reverb, delay, etc.), and outputs to speakers in real-time. You can record the processed output and export it as WAV."/>
+              <Separator Margin="0,4"/>
+              <TextBlock Text="Technologies" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="13"/>
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="C# / .NET 8" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="11"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Language and runtime" Foreground="{DynamicResource DimText}" FontSize="11"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Avalonia UI 11" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="11"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Cross-platform UI framework" Foreground="{DynamicResource DimText}" FontSize="11"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="NAudio 2.2" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="11"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="Audio I/O (WASAPI, ASIO)" Foreground="{DynamicResource DimText}" FontSize="11"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Freeverb" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="11"/>
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="Reverb algorithm" Foreground="{DynamicResource DimText}" FontSize="11"/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="JSON" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="11"/>
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="Preset serialization" Foreground="{DynamicResource DimText}" FontSize="11"/>
+              </Grid>
+              <Separator Margin="0,4"/>
+              <TextBlock Text="Effects Available" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="13"/>
+              <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource MutedText}" FontSize="11"
+                         Text="Gain · Noise Gate · Compressor · Distortion · Fuzz · EQ (3-Band) · Graphic EQ (10-Band) · Delay · Reverb · Chorus"/>
+              <Separator Margin="0,4"/>
+              <TextBlock Text="CFC Informatique — Mars 2026" Foreground="{DynamicResource DimText}" FontSize="11"/>
+              <TextBlock x:Name="RepoLink" Text="github.com/bryte-dev/AUDIOBLOCKS" Foreground="{DynamicResource AccentCyan}" FontSize="11"
+                         Cursor="Hand" TextDecorations="Underline"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
 </Window>

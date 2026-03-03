@@ -1,22 +1,37 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AudioBlocks.App.SplashWindow"
-        Width="400" Height="200"
+        Width="440" Height="230"
         CanResize="False"
         SystemDecorations="None"
         WindowStartupLocation="CenterScreen"
         Background="#0F1115"
         TransparencyLevelHint="None">
 
-  <Border CornerRadius="12" Background="#0F1115" BorderBrush="#2A2D35" BorderThickness="1" Padding="32">
+  <Window.Styles>
+    <Style Selector="Border">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.4"/>
+        </Transitions>
+      </Setter>
+    </Style>
+  </Window.Styles>
+
+  <Border CornerRadius="14" Background="#0F1115" BorderBrush="#2A2D35" BorderThickness="1" Padding="36">
     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
-      <TextBlock Text="AudioBlocks" FontSize="28" FontWeight="Bold" Foreground="#F0F0F0"
-                 HorizontalAlignment="Center"/>
-      <TextBlock Text="Live Audio FX Engine" FontSize="13" Foreground="#6B7280"
-                 HorizontalAlignment="Center"/>
-      <ProgressBar IsIndeterminate="True" Height="4" Width="200" Foreground="#FF6B6B"/>
+      <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+        <Border Width="44" Height="44" CornerRadius="12" ClipToBounds="True">
+          <Image Source="avares://AudioBlocks.App/Assets/logo.png" Stretch="Uniform"/>
+        </Border>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="AudioBlocks" FontSize="30" FontWeight="ExtraBold" Foreground="#F0F0F0"/>
+          <TextBlock Text="Live Audio FX Engine" FontSize="12" Foreground="#6B7280" Opacity="0.7"/>
+        </StackPanel>
+      </StackPanel>
+      <ProgressBar IsIndeterminate="True" Height="4" Width="240" Foreground="#FF6B6B" CornerRadius="2"/>
       <TextBlock x:Name="StatusText" Text="Initializing audio engine..."
-                 FontSize="11" Foreground="#A0A6B0" HorizontalAlignment="Center"/>
+                 FontSize="11" Foreground="#A0A6B0" HorizontalAlignment="Center" Opacity="0.8"/>
     </StackPanel>
   </Border>
 </Window>

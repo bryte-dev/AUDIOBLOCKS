@@ -1,11 +1,13 @@
 ﻿using AudioBlocks.App.Audio;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using NAudio.CoreAudioApi;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 
@@ -27,6 +29,10 @@ namespace AudioBlocks.App
             InitializeComponent();
             engine = mainEngine;
 
+            // ===== PAGE NAV =====
+            NavList.SelectionChanged += (_, _) => SyncPages();
+            SyncPages();
+
             // ===== THEME =====
             ThemeComboBox.SelectedIndex = Application.Current?.RequestedThemeVariant == ThemeVariant.Light ? 1 : 0;
             ThemeComboBox.SelectionChanged += (_, _) =>
@@ -37,6 +43,19 @@ namespace AudioBlocks.App
                         : ThemeVariant.Dark;
             };
 
+            // ===== REPO LINK =====
+            RepoLink.PointerPressed += (_, _) =>
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://github.com/bryte-dev/AUDIOBLOCKS") { UseShellExecute = true }); }
+                catch { }
+            };
+
+            // ===== VERSION =====
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var ver = asm.GetName().Version;
+            VersionLabel.Text = ver != null ? $"Version {ver.Major}.{ver.Minor}.{ver.Build}" : "Version 1.0.0";
+
+            // ===== AUDIO ENGINE EVENTS =====
             engine.OnCpuOverloadChanged += overload =>
                 Dispatcher.UIThread.Post(() => CpuWarningLabel.Text = overload ? "CPU overload" : "");
 
@@ -50,7 +69,7 @@ namespace AudioBlocks.App
                     string cur = StatusLabel.Text ?? "";
                     string next = cur + (string.IsNullOrEmpty(cur) ? "" : Environment.NewLine) + msg;
                     if (next.Length > 3000)
-                        next = next.Substring(next.Length - 3000);
+                        next = next[^3000..];
                     StatusLabel.Text = next;
                     StatusLabel.CaretIndex = next.Length;
                 });
@@ -88,6 +107,16 @@ namespace AudioBlocks.App
             SyncControlStates();
         }
 
+        // ═══════ PAGE NAVIGATION ═══════
+        private void SyncPages()
+        {
+            int idx = NavList.SelectedIndex;
+            PageAudio.IsVisible = idx == 0;
+            PageDisplay.IsVisible = idx == 1;
+            PageAbout.IsVisible = idx == 2;
+        }
+
+        // ═══════ DEVICE ENUMERATION ═══════
         private void EnumerateDevices()
         {
             var inIds = new List<string>();

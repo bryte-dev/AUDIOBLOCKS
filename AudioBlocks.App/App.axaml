@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="AudioBlocks.App.App"
              RequestedThemeVariant="Dark">
-
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>
@@ -35,8 +34,6 @@
                     <SolidColorBrush x:Key="BorderSelected" Color="#FF6B6B"/>
                     <SolidColorBrush x:Key="DropTarget" Color="#33FF6B6B"/>
                     <SolidColorBrush x:Key="DragGhost" Color="#AA22252B"/>
-
-                    <!-- AudioBlocks Brand (from logo) -->
                     <SolidColorBrush x:Key="BlockGreen" Color="#7CB342"/>
                     <SolidColorBrush x:Key="BlockCyan" Color="#26C6DA"/>
                     <SolidColorBrush x:Key="BlockAmber" Color="#FFB300"/>
@@ -71,8 +68,6 @@
                     <SolidColorBrush x:Key="BorderSelected" Color="#C62828"/>
                     <SolidColorBrush x:Key="DropTarget" Color="#33C62828"/>
                     <SolidColorBrush x:Key="DragGhost" Color="#AAFFFFFF"/>
-
-                    <!-- AudioBlocks Brand (light) -->
                     <SolidColorBrush x:Key="BlockGreen" Color="#558B2F"/>
                     <SolidColorBrush x:Key="BlockCyan" Color="#00838F"/>
                     <SolidColorBrush x:Key="BlockAmber" Color="#FF8F00"/>

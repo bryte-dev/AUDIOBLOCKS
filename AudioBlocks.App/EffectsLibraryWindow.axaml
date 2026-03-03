@@ -1,155 +1,244 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="https://github.com/projektanker/icons.avalonia"
         x:Class="AudioBlocks.App.EffectsLibraryWindow"
-        Width="280" Height="620"
+        Width="290" Height="640"
         MinWidth="240" MinHeight="400"
         Title="Effects Library"
+        Icon="avares://AudioBlocks.App/Assets/logo.ico"
         Background="{DynamicResource AppBg}"
         WindowStartupLocation="CenterOwner"
         CanResize="True">
 
   <Window.Styles>
+    <Style Selector="Border">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.18"/>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
+        </Transitions>
+      </Setter>
+    </Style>
     <Style Selector="Border.fx-item">
       <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
       <Setter Property="CornerRadius" Value="8"/>
       <Setter Property="Padding" Value="10,8"/>
-      <Setter Property="Margin" Value="0,2"/>
+      <Setter Property="Margin" Value="0,2,6,2"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="RenderTransform" Value="none"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut"/>
+        </Transitions>
+      </Setter>
     </Style>
     <Style Selector="Border.fx-item:pointerover">
       <Setter Property="Background" Value="{DynamicResource CardSelected}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource DimText}"/>
+      <Setter Property="RenderTransform" Value="translateX(2px)"/>
     </Style>
     <Style Selector="Border.preset-item">
       <Setter Property="Background" Value="{DynamicResource CardBg}"/>
-      <Setter Property="CornerRadius" Value="6"/>
-      <Setter Property="Padding" Value="10,6"/>
-      <Setter Property="Margin" Value="0,2"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="10,7"/>
+      <Setter Property="Margin" Value="0,2,6,2"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="RenderTransform" Value="none"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.preset-item:pointerover">
+      <Setter Property="Background" Value="{DynamicResource CardSelected}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource DimText}"/>
+      <Setter Property="RenderTransform" Value="translateX(2px)"/>
+    </Style>
+    <Style Selector="Separator">
+      <Setter Property="Background" Value="{DynamicResource SurfaceBg}"/>
+      <Setter Property="Height" Value="1"/>
     </Style>
   </Window.Styles>
 
   <Border Background="{DynamicResource PanelBg}" Padding="14">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <StackPanel Spacing="6">
-        <TextBlock Text="Effects Library" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource FgText}"/>
-        <TextBlock Text="Click to add � or drag to chain" Foreground="{DynamicResource DimText}" FontSize="11"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <i:Icon Value="mdi-view-dashboard" FontSize="20" Foreground="{DynamicResource AccentCyan}"/>
+          <TextBlock Text="Effects Library" FontSize="18" FontWeight="ExtraBold" Foreground="{DynamicResource FgText}"/>
+        </StackPanel>
+        <TextBlock Text="Click to add · Drag to chain" Foreground="{DynamicResource DimText}" FontSize="11"/>
         <Separator Margin="0,4"/>
 
-        <!-- DYNAMICS -->
-        <TextBlock Text="DYNAMICS" Foreground="{DynamicResource AccentBrush}" FontSize="10" FontWeight="Bold" Margin="0,4,0,2"/>
+        <!-- ═══ DYNAMICS ═══ -->
+        <TextBlock Text="DYNAMICS" Foreground="{DynamicResource AccentBrush}" FontSize="9" FontWeight="ExtraBold" Margin="0,4,0,2"/>
         <Border Classes="fx-item" x:Name="DragGain" Tag="Gain">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentBrush}"
-                      Data="M3,17v2h6v-2ZM3,5V7h10V5Zm10,16v-2h8v-2H13v-2H11v6ZM7,9v2H3v2H7v2H9V9Zm14,4V11H11v2Zm-6-4h2V7h4V5H15V3H13Z"/>
-            <TextBlock Text="Gain Boost" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-volume-high" FontSize="18" Foreground="{DynamicResource AccentBrush}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Gain Boost" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Volume / drive level" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
         <Border Classes="fx-item" x:Name="DragCompressor" Tag="Compressor">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentBrush}"
-                      Data="M16,4l-4,4H8V16h4l4,4ZM19.73,12c0-1.56-.48-3-.91-3.73l-1.44.83c.3.5.65,1.62.65,2.9s-.35,2.4-.65,2.9l1.44.83C19.25,15,19.73,13.56,19.73,12Z"/>
-            <TextBlock Text="Compressor" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-arrow-collapse-vertical" FontSize="18" Foreground="{DynamicResource AccentBrush}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Compressor" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Dynamic range control" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
         <Border Classes="fx-item" x:Name="DragGate" Tag="NoiseGate">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentBrush}"
-                      Data="M18,8h-1V6c0-2.76-2.24-5-5-5S7,3.24,7,6v2H6c-1.1,0-2,.9-2,2v10c0,1.1,.9,2,2,2h12c1.1,0,2-.9,2-2V10C20,8.9,19.1,8,18,8ZM12,17c-1.1,0-2-.9-2-2s.9-2,2-2,2,.9,2,2-.9,2-2,2ZM15,8H9V6c0-1.66,1.34-3,3-3s3,1.34,3,3Z"/>
-            <TextBlock Text="Noise Gate" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-gate" FontSize="18" Foreground="{DynamicResource AccentBrush}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Noise Gate" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Cut silence / hum" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
 
-        <!-- TONE -->
-        <TextBlock Text="TONE" Foreground="{DynamicResource AccentCyan}" FontSize="10" FontWeight="Bold" Margin="0,8,0,2"/>
+        <!-- ═══ TONE ═══ -->
+        <TextBlock Text="TONE" Foreground="{DynamicResource AccentCyan}" FontSize="9" FontWeight="ExtraBold" Margin="0,8,0,2"/>
         <Border Classes="fx-item" x:Name="DragEq" Tag="EQ">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
-                      Data="M7,18h2V6H7ZM11,18h2V10H11Zm4,0h2V14H15Z"/>
-            <TextBlock Text="EQ (3-Band)" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-equalizer" FontSize="18" Foreground="{DynamicResource AccentCyan}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="EQ (3-Band)" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Low / Mid / High" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
         <Border Classes="fx-item" x:Name="DragDistortion" Tag="Distortion">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
-                      Data="M7,2v11h3v9l7-12h-4l3-8Z"/>
-            <TextBlock Text="Distortion" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-flash-alert" FontSize="18" Foreground="{DynamicResource AccentCyan}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Distortion" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Overdrive / clipping" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
         <Border Classes="fx-item" x:Name="DragFuzz" Tag="Fuzz">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
-                      Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2ZM11,19.93c-3.95-.49-7-3.85-7-7.93,0-.62,.08-1.22,.21-1.79L9,15v1c0,1.1,.9,2,2,2Zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55,0,1-.45,1-1V7h2c1.1,0,2-.9,2-2v-.41c2.93,1.19,5,4.06,5,7.41,0,2.08-.8,3.97-2.1,5.39Z"/>
-            <TextBlock Text="Fuzz" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
-          </StackPanel>
-        </Border>
-
-        <!-- TIME / MOD -->
-        <TextBlock Text="TIME / MOD" Foreground="{DynamicResource AccentPurple}" FontSize="10" FontWeight="Bold" Margin="0,8,0,2"/>
-        <Border Classes="fx-item" x:Name="DragDelay" Tag="Delay">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentPurple}"
-                      Data="M11.99,2C6.47,2,2,6.48,2,12s4.47,10,9.99,10C17.52,22,22,17.52,22,12S17.52,2,11.99,2ZM12,20c-4.42,0-8-3.58-8-8s3.58-8,8-8,8,3.58,8,8-3.58,8-8,8Zm.5-13H11v6l5.25,3.15.75-1.23-4.5-2.67Z"/>
-            <TextBlock Text="Delay" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
-          </StackPanel>
-        </Border>
-        <Border Classes="fx-item" x:Name="DragReverb" Tag="Reverb">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentPurple}"
-                      Data="M14,3.23v2.06c2.89,.86,5,3.54,5,6.71s-2.11,5.85-5,6.71v2.06c4.01-.91,7-4.49,7-8.77s-2.99-7.86-7-8.77Zm-4,1.77H6C4.9,5,4,5.9,4,7v10c0,1.1,.9,2,2,2h4l5,5V0Z"/>
-            <TextBlock Text="Reverb" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
-          </StackPanel>
-        </Border>
-        <Border Classes="fx-item" x:Name="DragChorus" Tag="Chorus">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentPurple}"
-                      Data="M12,3v10.55c-.59-.34-1.27-.55-2-.55C7.79,13,6,14.79,6,17s1.79,4,4,4,4-1.79,4-4V7h4V3Z"/>
-            <TextBlock Text="Chorus" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-waveform" FontSize="18" Foreground="{DynamicResource AccentCyan}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Fuzz" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Heavy saturation" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
         <Border Classes="fx-item" x:Name="DragGraphicEq" Tag="GraphicEQ">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <PathIcon Width="14" Height="14" Foreground="{DynamicResource AccentCyan}"
-                      Data="M3,17h2V7H3Zm4,0h2V10H7Zm4,0h2V3H11Zm4,0h2V13H15Zm4,0h2V7H19Z"/>
-            <TextBlock Text="Graphic EQ (10-Band)" VerticalAlignment="Center" Foreground="{DynamicResource FgText}" FontSize="13"/>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-chart-bar" FontSize="18" Foreground="{DynamicResource AccentCyan}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Graphic EQ (10-Band)" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Precision frequency control" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- ═══ TIME / MOD ═══ -->
+        <TextBlock Text="TIME / MOD" Foreground="{DynamicResource AccentPurple}" FontSize="9" FontWeight="ExtraBold" Margin="0,8,0,2"/>
+        <Border Classes="fx-item" x:Name="DragDelay" Tag="Delay">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-timer-outline" FontSize="18" Foreground="{DynamicResource AccentPurple}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Delay" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Echo / repeat" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragReverb" Tag="Reverb">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-waves" FontSize="18" Foreground="{DynamicResource AccentPurple}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Reverb" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Room / space" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        <Border Classes="fx-item" x:Name="DragChorus" Tag="Chorus">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <i:Icon Value="mdi-music-note" FontSize="18" Foreground="{DynamicResource AccentPurple}"/>
+            <StackPanel Spacing="0">
+              <TextBlock Text="Chorus" Foreground="{DynamicResource FgText}" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="Detune / widen" Foreground="{DynamicResource DimText}" FontSize="10"/>
+            </StackPanel>
           </StackPanel>
         </Border>
 
         <Separator Margin="0,8"/>
 
-        <!-- PRESETS -->
-        <TextBlock Text="PRESETS" Foreground="{DynamicResource MutedText}" FontSize="10" FontWeight="Bold"/>
+        <!-- ═══ PRESETS ═══ -->
+        <TextBlock Text="PRESETS" Foreground="{DynamicResource MutedText}" FontSize="9" FontWeight="ExtraBold"/>
         <Border Classes="preset-item" x:Name="PresetClean" Tag="Clean">
-          <TextBlock Text="Clean Tone" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Width="8" Height="8" Fill="{DynamicResource BlockGreen}"/>
+            <TextBlock Text="Clean Tone" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          </StackPanel>
         </Border>
         <Border Classes="preset-item" x:Name="PresetCrunch" Tag="Crunch">
-          <TextBlock Text="Crunch" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Width="8" Height="8" Fill="{DynamicResource AccentBrush}"/>
+            <TextBlock Text="Crunch" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          </StackPanel>
         </Border>
         <Border Classes="preset-item" x:Name="PresetLead" Tag="Lead">
-          <TextBlock Text="Lead" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Width="8" Height="8" Fill="{DynamicResource BlockAmber}"/>
+            <TextBlock Text="Lead" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          </StackPanel>
         </Border>
         <Border Classes="preset-item" x:Name="PresetAmbient" Tag="Ambient">
-          <TextBlock Text="Ambient" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Width="8" Height="8" Fill="{DynamicResource AccentPurple}"/>
+            <TextBlock Text="Ambient" Foreground="{DynamicResource FgText}" FontSize="12"/>
+          </StackPanel>
         </Border>
 
-        <!-- SAVE PRESET -->
-        <Border Classes="preset-item" x:Name="SavePresetBtn" Margin="0,6,0,0">
-          <TextBlock Text="?? Save Current Chain" Foreground="{DynamicResource AccentBrush}" FontSize="12"/>
+        <!-- ═══ SAVE ═══ -->
+        <Border Classes="preset-item" x:Name="SavePresetBtn" Margin="0,6,6,0">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="mdi-content-save" FontSize="14" Foreground="{DynamicResource AccentBrush}"/>
+            <TextBlock Text="Save Current Chain" Foreground="{DynamicResource AccentBrush}" FontSize="12"/>
+          </StackPanel>
         </Border>
         <StackPanel x:Name="SavePanel" Orientation="Horizontal" Spacing="4" IsVisible="False" Margin="0,2">
-          <TextBox x:Name="PresetNameBox" Watermark="Preset name..." FontSize="12" MinWidth="160" Height="28"/>
-          <Button x:Name="SaveConfirmBtn" Content="?" FontSize="12" Height="28"/>
+          <TextBox x:Name="PresetNameBox" Watermark="Preset name..." FontSize="12" MinWidth="160" Height="28" CornerRadius="6"/>
+          <Button x:Name="SaveConfirmBtn" Height="28" Width="28" CornerRadius="6" Padding="0"
+                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                  Background="{DynamicResource SurfaceBg}">
+            <i:Icon Value="mdi-check" FontSize="16" Foreground="{DynamicResource BlockGreen}"/>
+          </Button>
         </StackPanel>
 
         <Separator Margin="0,6"/>
-        <TextBlock Text="USER PRESETS" Foreground="{DynamicResource MutedText}" FontSize="10" FontWeight="Bold"/>
+        <TextBlock Text="USER PRESETS" Foreground="{DynamicResource MutedText}" FontSize="9" FontWeight="ExtraBold"/>
         <StackPanel x:Name="UserPresetsPanel" Spacing="2"/>
 
         <Separator Margin="0,6"/>
         <Border Classes="preset-item" x:Name="ExportPresetBtn">
-          <TextBlock Text="?? Export Preset..." Foreground="{DynamicResource FgText}" FontSize="12"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="mdi-export" FontSize="14" Foreground="{DynamicResource FgText}"/>
+            <TextBlock Text="Export Preset..." Foreground="{DynamicResource FgText}" FontSize="12"/>
+          </StackPanel>
         </Border>
         <Border Classes="preset-item" x:Name="ImportPresetBtn">
-          <TextBlock Text="?? Import Preset..." Foreground="{DynamicResource FgText}" FontSize="12"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <i:Icon Value="mdi-import" FontSize="14" Foreground="{DynamicResource FgText}"/>
+            <TextBlock Text="Import Preset..." Foreground="{DynamicResource FgText}" FontSize="12"/>
+          </StackPanel>
         </Border>
 
         <Separator Margin="0,6"/>
