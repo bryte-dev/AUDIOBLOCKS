@@ -9,7 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- ── Production metadata ── -->
-    <AssemblyName>AudioBlocks</AssemblyName>
+    <AssemblyName>AudioBlocks.App</AssemblyName>
     <Product>AudioBlocks</Product>
     <Version>1.0.0</Version>
     <Company>AudioBlocks</Company>
