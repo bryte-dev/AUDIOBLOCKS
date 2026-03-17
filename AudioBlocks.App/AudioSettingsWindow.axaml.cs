@@ -53,7 +53,7 @@ namespace AudioBlocks.App
             // ===== VERSION =====
             var asm = System.Reflection.Assembly.GetExecutingAssembly();
             var ver = asm.GetName().Version;
-            VersionLabel.Text = ver != null ? $"Version {ver.Major}.{ver.Minor}.{ver.Build}" : "Version 1.0.0";
+            VersionLabel.Text = ver != null ? $"Version {ver.Major}.{ver.Minor}.{ver.Build}" : "Version 1.0.2";
 
             // ===== AUDIO ENGINE EVENTS =====
             engine.OnCpuOverloadChanged += overload =>

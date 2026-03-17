@@ -238,7 +238,7 @@
                 </StackPanel>
               </StackPanel>
               <Separator Margin="0,4"/>
-              <TextBlock x:Name="VersionLabel" Text="Version 1.0.1" Foreground="{DynamicResource FgText}" FontSize="12"/>
+              <TextBlock x:Name="VersionLabel" Text="Version 1.0.2" Foreground="{DynamicResource FgText}" FontSize="12"/>
               <TextBlock Text="Runtime: .NET 8 · Avalonia UI 11 · NAudio 2.2" Foreground="{DynamicResource MutedText}" FontSize="11" FontFamily="Consolas"/>
               <Separator Margin="0,4"/>
               <TextBlock Text="Description" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="13"/>

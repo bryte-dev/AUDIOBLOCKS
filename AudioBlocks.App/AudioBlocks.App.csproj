@@ -11,7 +11,7 @@
     <!-- ── Production metadata ── -->
     <AssemblyName>AudioBlocks.App</AssemblyName>
     <Product>AudioBlocks</Product>
-    <Version>1.0.0</Version>
+    <Version>1.0.2</Version>
     <Company>AudioBlocks</Company>
     <Description>Live Audio FX Engine</Description>
     <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
