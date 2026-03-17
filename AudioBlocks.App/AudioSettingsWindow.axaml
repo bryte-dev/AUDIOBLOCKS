@@ -238,7 +238,7 @@
                 </StackPanel>
               </StackPanel>
               <Separator Margin="0,4"/>
-              <TextBlock x:Name="VersionLabel" Text="Version 1.0.0" Foreground="{DynamicResource FgText}" FontSize="12"/>
+              <TextBlock x:Name="VersionLabel" Text="Version 1.0.1" Foreground="{DynamicResource FgText}" FontSize="12"/>
               <TextBlock Text="Runtime: .NET 8 · Avalonia UI 11 · NAudio 2.2" Foreground="{DynamicResource MutedText}" FontSize="11" FontFamily="Consolas"/>
               <Separator Margin="0,4"/>
               <TextBlock Text="Description" FontWeight="SemiBold" Foreground="{DynamicResource FgText}" FontSize="13"/>
@@ -263,7 +263,7 @@
               <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource MutedText}" FontSize="11"
                          Text="Gain · Noise Gate · Compressor · Distortion · Fuzz · EQ (3-Band) · Graphic EQ (10-Band) · Delay · Reverb · Chorus"/>
               <Separator Margin="0,4"/>
-              <TextBlock Text="CFC Informatique — Mars 2026" Foreground="{DynamicResource DimText}" FontSize="11"/>
+              <TextBlock Text="Milian Joaquim's PRE-TPI — March 2026" Foreground="{DynamicResource DimText}" FontSize="11"/>
               <TextBlock x:Name="RepoLink" Text="github.com/bryte-dev/AUDIOBLOCKS" Foreground="{DynamicResource AccentCyan}" FontSize="11"
                          Cursor="Hand" TextDecorations="Underline"/>
             </StackPanel>
